@@ -14,6 +14,7 @@ import edu.ufl.cise.cop4020fa23.LexicalStructure;
 import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 
 import javax.lang.model.element.VariableElement;
 
@@ -21,44 +22,200 @@ public class Lexer implements ILexer {
 
 	String input;
 
-	HashMap<String, Kind> literalToKind;
+	// any length
+	private HashMap<String, Kind> literalToKindAny;
+
+	// only one length
+	private HashMap<String, Kind> literalToKindOne;
+
+	// only two length
+	private HashMap<String, Kind> literalToKindTwo;
+
+	private ArrayList<String> lexibles;
+
+	SourceLocation location;
 
 	public Lexer(String input) {
+		// input is outside-immutable.
+		// it consists of all the code
+		// next() enumerates through all the lexed tokens
+		// islandize possible Lexer inputs
 		this.input = input;
-		literalToKind = new HashMap<String, Kind>();
+		literalToKindAny = new HashMap<String, Kind>();
+		literalToKindOne = new HashMap<String, Kind>();
+		literalToKindTwo = new HashMap<String, Kind>();
+
+		createLexicalStructure();
+		loadLexables();
+	}
+
+	private void loadLexibles() {
+		// discard anything that starts with a comment
+		// discard whitespace;
+		if (input.isEmpty()) {
+			return;
+		}
+		
+		int anchorLeft = 0;
+		int anchorRight = 0;
+		char previousChar = input.charAt(0);
+		boolean isInComment = false;
+
+
+		while (anchorRight < input.length()) {
+			char thisChar = input.charAt(anchorRight);
+
+
+			// if JUST invalid - whitespace
+			if ((!LexicalStructure.isWhiteSpace(previousChar) &&
+				LexicalStructure.isWhiteSpace(thisChar))) {
+				// add lexible
+				if (anchorRight - anchorLeft - 1 > 0) {
+					// 											ignore the whitespace character.
+					String lexible = input.substring(anchorLeft, anchorRight-1);
+					tellVar("Lexible", lexible);
+					lexibles.add(lexible);
+				}
+
+			}
+			// if JUST invalid - comments 
+			if (LexicalStructure.isCommentChar(previousChar) &&
+				LexicalStructure.isCommentChar(thisChar)) {
+				// add lexible
+				if (anchorRight - anchorLeft - 1 > 0) {
+					String lexible = input.substring(anchorLeft, anchorRight);
+					tellVar("Lexible", lexible);
+					lexibles.add(lexible);
+				}
+				// go into comment mode.
+				isInComment = true;
+			}
+			// if invalid - whitespace
+			else if (LexicalStructure.isWhiteSpace(previousChar) &&
+			 		 LexicalStructure.isWhiteSpace(thisChar)) {
+				anchorLeft = anchorRight;
+			}
+			// invalidate comment mode
+			else if (!LexicalStructure.isCRLF(previousChar) && 
+					 LexicalStructure.isCRLF(thisChar)) {
+							
+			}
+
+			// if JUST valid 
+
+
+
+			previousChar = thisChar;
+
+		}
+
+		// add valid Lexable
 	}
 
 	private void createLexicalStructure() {
 		// boolean literal
 		for (String s : LexicalStructure.BooleanLit) {
-			literalToKind.put(s, Kind.BOOLEAN_LIT);
+			literalToKindAny.put(s, Kind.BOOLEAN_LIT);
 		}
 		// constant literal
 		for (String s : LexicalStructure.Constants) {
-			literalToKind.put(s, Kind.CONST);
+			literalToKindAny.put(s, Kind.CONST);
 		}
 
+		// reserved cases
+		literalToKindAny.put(LexicalStructure.RES_Image, Kind.RES_image);
+		literalToKindAny.put(LexicalStructure.RES_Pixel, Kind.RES_pixel);
+		literalToKindAny.put(LexicalStructure.RES_Int, Kind.RES_int);
+		literalToKindAny.put(LexicalStructure.RES_String, Kind.RES_string);
+		literalToKindAny.put(LexicalStructure.RES_Void, Kind.RES_void);
+		literalToKindAny.put(LexicalStructure.RES_Boolean, Kind.RES_boolean);
+		literalToKindAny.put(LexicalStructure.RES_Write, Kind.RES_write);
+		literalToKindAny.put(LexicalStructure.RES_Height, Kind.RES_height);
+		literalToKindAny.put(LexicalStructure.RES_Width, Kind.RES_width);
+		literalToKindAny.put(LexicalStructure.RES_If, Kind.RES_if);
+		literalToKindAny.put(LexicalStructure.RES_Fi, Kind.RES_fi);
+		literalToKindAny.put(LexicalStructure.RES_Do, Kind.RES_do);
+		literalToKindAny.put(LexicalStructure.RES_Od, Kind.RES_od);
+		literalToKindAny.put(LexicalStructure.RES_Red, Kind.RES_red);
+		literalToKindAny.put(LexicalStructure.RES_Green, Kind.RES_green);
+		literalToKindAny.put(LexicalStructure.RES_Blue, Kind.RES_blue);
+
+		// one-letter ops
+		literalToKindOne.put(LexicalStructure.Comma, Kind.COMMA);
+		literalToKindOne.put(LexicalStructure.Semi, Kind.SEMI);
+		literalToKindOne.put(LexicalStructure.Question, Kind.QUESTION);
+		literalToKindOne.put(LexicalStructure.Colon, Kind.COLON);
+		literalToKindOne.put(LexicalStructure.LParen, Kind.LPAREN);
+		literalToKindOne.put(LexicalStructure.RParen, Kind.RPAREN);
+		literalToKindOne.put(LexicalStructure.LT, Kind.LT);
+		literalToKindOne.put(LexicalStructure.GT, Kind.GT);
+		literalToKindOne.put(LexicalStructure.LSquare, Kind.LSQUARE);
+		literalToKindOne.put(LexicalStructure.RSquare, Kind.RSQUARE);
+		literalToKindOne.put(LexicalStructure.Assign, Kind.ASSIGN);
+		literalToKindOne.put(LexicalStructure.Bang, Kind.BANG);
+		literalToKindOne.put(LexicalStructure.BitAnd, Kind.BITAND);
+		literalToKindOne.put(LexicalStructure.BitOr, Kind.BITOR);
+		literalToKindOne.put(LexicalStructure.Plus, Kind.PLUS);
+		literalToKindOne.put(LexicalStructure.Minus, Kind.MINUS);
+		literalToKindOne.put(LexicalStructure.Times, Kind.TIMES);
+		literalToKindOne.put(LexicalStructure.Div, Kind.DIV);
+		literalToKindOne.put(LexicalStructure.Mod, Kind.MOD);
+		literalToKindOne.put(LexicalStructure.Return, Kind.RETURN);
+
+		// two-letter ops
+		literalToKindTwo.put(LexicalStructure.Eq, Kind.EQ);
+		literalToKindTwo.put(LexicalStructure.Le, Kind.LE);
+		literalToKindTwo.put(LexicalStructure.Ge, Kind.GE);
+		literalToKindTwo.put(LexicalStructure.And, Kind.AND);
+		literalToKindTwo.put(LexicalStructure.Or, Kind.OR);
+		literalToKindTwo.put(LexicalStructure.Exp, Kind.EXP);
+		literalToKindTwo.put(LexicalStructure.BlockOpen, Kind.BLOCK_OPEN);
+		literalToKindTwo.put(LexicalStructure.BlockClose, Kind.BLOCK_CLOSE);
+		literalToKindTwo.put(LexicalStructure.RArrow, Kind.RARROW);
+		literalToKindTwo.put(LexicalStructure.Box, Kind.BOX);
 	}
 
 	@Override
 	public IToken next() throws LexicalException {
-		System.out.println("My contents are: ")
+		tellVar("Lexable Inputs", input);
+		// stages - 
+		// initialize position
+		int column = 0;
+		int row = 0;
+		int inputPosition = 0;
+		// all I need to do is 
+
+		// recognize number? 
+		// recognize alphanumeric?
+
 		return new Token(EOF, 0, 0, null, new SourceLocation(1, 1));
-		printVar("input", input);
 	}
 
-	private void tellVar(VariableElement var) {
 
+
+
+	////////////////
+	// DEBUG VARS //
+	////////////////
+
+
+	private void tellVar(String name, Object var) {
+		System.out.println(getLoc() + "value of " + name + " is :" + var.toString());
+	}
+
+	private void tell(String contents) {
+		System.out.println(getLoc() + contents);
 	}
 
 	private static String getLoc() {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        if (stackTrace.length > 2) {
-            return stackTrace[2].getLineNumber();
-        } else {
-            return "?";
-        }
-    }
-
+		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+		if (stackTrace.length >= 4) {
+			String lineStr = Integer.toString(stackTrace[2].getLineNumber());
+			String testStr = stackTrace[4].getMethodName();
+			return " [" + testStr + "][Line" + lineStr + "] ";
+		} else {
+			return "[?]";
+		}
+	}
 
 }

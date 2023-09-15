@@ -54,8 +54,8 @@ public final class LexicalStructure {
     public static final String BitAnd = "&";
     public static final String BitOr = "|";
     public static final String Plus = "+";
-    public static final String OpMinus = "-";
-    public static final String OpTimes = "*";
+    public static final String Minus = "-";
+    public static final String Times = "*";
     public static final String Div = "/";
     public static final String Mod = "%";
     public static final String Return = "^";
@@ -71,11 +71,17 @@ public final class LexicalStructure {
     public static final String RArrow = "->";
     public static final String Box = "[]";
 
-    public static final String[] WhiteSpace = {
-        " ",
-        "\n",
-        "\r"
-    };
+    public static final boolean isWhiteSpace(char character) {
+        return (character == ' ' || character == '\n' || character == '\r');
+    }
+
+    public static final boolean isCRLF(char character) {
+        return (character == '\r' || character == '\n');
+    }
+
+     public static final boolean isCommentChar(char character) {
+        return character == '#';
+    }
     public static final String[] CommentDelimiter = {
         "##"
     };
