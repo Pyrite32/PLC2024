@@ -21,6 +21,7 @@ import javax.lang.model.element.VariableElement;
 public class Lexer implements ILexer {
 
 	String input;
+	int currentLexibleIndex = 0;
 
 	// any length
 	private HashMap<String, Kind> literalToKindAny;
@@ -44,14 +45,15 @@ public class Lexer implements ILexer {
 		literalToKindAny = new HashMap<String, Kind>();
 		literalToKindOne = new HashMap<String, Kind>();
 		literalToKindTwo = new HashMap<String, Kind>();
-
+		lexibles = new ArrayList<String>();
 		createLexicalStructure();
-		loadLexables();
+		loadLexibles();
 	}
 
 	private void loadLexibles() {
 		// discard anything that starts with a comment
 		// discard whitespace;
+
 		if (input.isEmpty()) {
 			return;
 		}
@@ -61,55 +63,83 @@ public class Lexer implements ILexer {
 		char previousChar = input.charAt(0);
 		boolean isInComment = false;
 
-
 		while (anchorRight < input.length()) {
 			char thisChar = input.charAt(anchorRight);
-
-
-			// if JUST invalid - whitespace
+			// if JUST became whitespace
+			if (isInComment) {
+				anchorLeft = anchorRight;
+			}
 			if ((!LexicalStructure.isWhiteSpace(previousChar) &&
 				LexicalStructure.isWhiteSpace(thisChar))) {
 				// add lexible
-				if (anchorRight - anchorLeft - 1 > 0) {
+				if (anchorRight - anchorLeft > 0) {
 					// 											ignore the whitespace character.
-					String lexible = input.substring(anchorLeft, anchorRight-1);
-					tellVar("Lexible", lexible);
+					String lexible = input.substring(anchorLeft, anchorRight);
+					//tellVar("Whitespace Lexible", lexible);
 					lexibles.add(lexible);
 				}
+				else {
+					//tell("rejected lexible in JUST invalid whitespace");
+				}
+				anchorLeft = anchorRight;
 
+				//tell("now whitespace");
 			}
-			// if JUST invalid - comments 
+			// if JUST became comment
 			if (LexicalStructure.isCommentChar(previousChar) &&
 				LexicalStructure.isCommentChar(thisChar)) {
 				// add lexible
 				if (anchorRight - anchorLeft - 1 > 0) {
-					String lexible = input.substring(anchorLeft, anchorRight);
-					tellVar("Lexible", lexible);
+					String lexible = input.substring(anchorLeft, anchorRight - 1);
+					//tellVar("Prev Comment Lexible", lexible);
 					lexibles.add(lexible);
 				}
+				else {
+					//tell("rejected lexible in JUST invalid comments");
+				}
 				// go into comment mode.
+				//tell("is now comment");
 				isInComment = true;
 			}
-			// if invalid - whitespace
+			// if current in whitespace
 			else if (LexicalStructure.isWhiteSpace(previousChar) &&
 			 		 LexicalStructure.isWhiteSpace(thisChar)) {
 				anchorLeft = anchorRight;
 			}
 			// invalidate comment mode
-			else if (!LexicalStructure.isCRLF(previousChar) && 
+			else if (isInComment && !LexicalStructure.isCRLF(previousChar) && 
 					 LexicalStructure.isCRLF(thisChar)) {
-							
+				//tell("is no longer comment");
+				isInComment = false;
 			}
+			// if just exited whitespace
+			else if (LexicalStructure.isWhiteSpace(previousChar) &&
+					 !LexicalStructure.isWhiteSpace(thisChar)) {
+				anchorLeft += 1;
+			}
+			else {
+				// assume valid;
 
-			// if JUST valid 
-
-
-
+			}
+			// do this every time
 			previousChar = thisChar;
-
+			anchorRight += 1;
+		}
+		// final lexible
+		if (anchorRight - anchorLeft> 0) {
+			String lexible = input.substring(anchorLeft, anchorRight);
+			// extra precaution
+			lexible = lexible.replace("\n", "");
+			lexible = lexible.replace("\r", "");
+			lexible = lexible.replace(" ", "");
+			if (!lexible.isEmpty()) {
+				lexibles.add(lexible);
+				//tellVar("Final Lexible", lexible);
+			}
 		}
 
-		// add valid Lexable
+		//tellVar("Lexibles Size",lexibles.size());
+		
 	}
 
 	private void createLexicalStructure() {
@@ -177,16 +207,12 @@ public class Lexer implements ILexer {
 
 	@Override
 	public IToken next() throws LexicalException {
-		tellVar("Lexable Inputs", input);
-		// stages - 
-		// initialize position
-		int column = 0;
-		int row = 0;
-		int inputPosition = 0;
-		// all I need to do is 
+		String currentLexible = lexibles.get(currentLexibleIndex);
 
-		// recognize number? 
-		// recognize alphanumeric?
+		// process the longest possible lexibles first...
+		// alphabeticals
+		// numerals
+
 
 		return new Token(EOF, 0, 0, null, new SourceLocation(1, 1));
 	}
@@ -212,7 +238,7 @@ public class Lexer implements ILexer {
 		if (stackTrace.length >= 4) {
 			String lineStr = Integer.toString(stackTrace[2].getLineNumber());
 			String testStr = stackTrace[4].getMethodName();
-			return " [" + testStr + "][Line" + lineStr + "] ";
+			return " [" + testStr + "][Line " + lineStr + "] ";
 		} else {
 			return "[?]";
 		}
