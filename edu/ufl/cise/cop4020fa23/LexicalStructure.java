@@ -70,19 +70,32 @@ public final class LexicalStructure {
     public static final String BlockClose = ":>";
     public static final String RArrow = "->";
     public static final String Box = "[]";
+    public static final char IncompleteComment = '#';
+    public static final char StringDelimiter = '\"';
+    public static final char IdentDelimiter = '_';
 
     public static final boolean isWhiteSpace(char character) {
         return (character == ' ' || character == '\n' || character == '\r');
     }
 
+
     public static final boolean isCRLF(char character) {
         return (character == '\r' || character == '\n');
     }
 
-     public static final boolean isCommentChar(char character) {
+    public static final boolean isNewLine(char character) {
+        return (character == '\n');
+    }
+
+    public static final boolean isUnprintable(char character) {
+        return (int)character < 32;
+    }
+
+    public static final boolean isCommentChar(char character) {
         return character == '#';
     }
-    public static final String[] CommentDelimiter = {
-        "##"
-    };
+
+    public static final boolean isOtherChar(char character) {
+        return !(Character.isAlphabetic(character) && Character.isDigit(character));
+    }
 }

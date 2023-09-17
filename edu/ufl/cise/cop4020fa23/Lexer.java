@@ -10,13 +10,11 @@
 package edu.ufl.cise.cop4020fa23;
 
 import static edu.ufl.cise.cop4020fa23.Kind.EOF;
-import edu.ufl.cise.cop4020fa23.LexicalStructure;
 import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
 
 import java.util.HashMap;
 import java.util.ArrayList;
 
-import javax.lang.model.element.VariableElement;
 
 public class Lexer implements ILexer {
 
@@ -32,9 +30,10 @@ public class Lexer implements ILexer {
 	// only two length
 	private HashMap<String, Kind> literalToKindTwo;
 
-	private ArrayList<String> lexibles;
+	private ArrayList<LexibleCluster> lexibles;
 
-	SourceLocation location;
+	int currentLine = 0;
+	int currentColumn = 0;
 
 	public Lexer(String input) {
 		// input is outside-immutable.
@@ -45,7 +44,7 @@ public class Lexer implements ILexer {
 		literalToKindAny = new HashMap<String, Kind>();
 		literalToKindOne = new HashMap<String, Kind>();
 		literalToKindTwo = new HashMap<String, Kind>();
-		lexibles = new ArrayList<String>();
+		lexibles = new ArrayList<LexibleCluster>();
 		createLexicalStructure();
 		loadLexibles();
 	}
@@ -60,6 +59,8 @@ public class Lexer implements ILexer {
 		
 		int anchorLeft = 0;
 		int anchorRight = 0;
+		int currentLine = 0;
+		int currentColumn = 0;
 		char previousChar = input.charAt(0);
 		boolean isInComment = false;
 
@@ -74,12 +75,16 @@ public class Lexer implements ILexer {
 				// add lexible
 				if (anchorRight - anchorLeft > 0) {
 					// 											ignore the whitespace character.
-					String lexible = input.substring(anchorLeft, anchorRight);
+					String contents = input.substring(anchorLeft, anchorRight);
+					SourceLocation sloc = new SourceLocation(currentLine, currentColumn);
 					//tellVar("Whitespace Lexible", lexible);
+
+					LexibleCluster lexible = new LexibleCluster(contents, sloc);
 					lexibles.add(lexible);
 				}
-				else {
-					//tell("rejected lexible in JUST invalid whitespace");
+				if (LexicalStructure.isNewLine(thisChar)) {
+					currentLine += 1;
+					currentColumn = 0;
 				}
 				anchorLeft = anchorRight;
 
@@ -90,8 +95,11 @@ public class Lexer implements ILexer {
 				LexicalStructure.isCommentChar(thisChar)) {
 				// add lexible
 				if (anchorRight - anchorLeft - 1 > 0) {
-					String lexible = input.substring(anchorLeft, anchorRight - 1);
-					//tellVar("Prev Comment Lexible", lexible);
+					String contents = input.substring(anchorLeft, anchorRight - 1);
+					SourceLocation sloc = new SourceLocation(currentLine, currentColumn);
+					//tellVar("Whitespace Lexible", lexible);
+
+					LexibleCluster lexible = new LexibleCluster(contents, sloc);
 					lexibles.add(lexible);
 				}
 				else {
@@ -123,16 +131,19 @@ public class Lexer implements ILexer {
 			}
 			// do this every time
 			previousChar = thisChar;
+			currentColumn += 1;
 			anchorRight += 1;
 		}
 		// final lexible
 		if (anchorRight - anchorLeft> 0) {
-			String lexible = input.substring(anchorLeft, anchorRight);
+			String contents = input.substring(anchorLeft, anchorRight);
 			// extra precaution
-			lexible = lexible.replace("\n", "");
-			lexible = lexible.replace("\r", "");
-			lexible = lexible.replace(" ", "");
-			if (!lexible.isEmpty()) {
+			contents = contents.replace("\n", "");
+			contents = contents.replace("\r", "");
+			contents = contents.replace(" ", "");
+			if (!contents.isEmpty()) {
+				SourceLocation sloc = new SourceLocation(currentLine, currentColumn);
+				LexibleCluster lexible = new LexibleCluster(contents, sloc);
 				lexibles.add(lexible);
 				//tellVar("Final Lexible", lexible);
 			}
@@ -205,16 +216,135 @@ public class Lexer implements ILexer {
 		literalToKindTwo.put(LexicalStructure.Box, Kind.BOX);
 	}
 
+	private enum LexerState {
+		START,
+		ALPHA_ONLY,
+		ALPHANUMERIC,
+		IDENTIFIER,
+		ZERO,
+		NUMERAL,
+		STRING,
+		OTHERCHAR
+	}
+
 	@Override
 	public IToken next() throws LexicalException {
-		String currentLexible = lexibles.get(currentLexibleIndex);
+		if (currentLexibleIndex >= lexibles.size()) {
+			return new Token(EOF, 0, 0, null, new SourceLocation(1, 1));
+		}
+		Token result = null;
+		LexibleCluster currentCluster = lexibles.get(currentLexibleIndex);
+		String current = currentCluster.contents();
+		int currentLine = currentCluster.location().line();
+		int currentColumn = currentCluster.location().column();
 
-		// process the longest possible lexibles first...
-		// alphabeticals
-		// numerals
+		LexerState previousState = LexerState.START;
+
+		for (int i = 0; i < current.length(); i++ ) {
+			char currentChar = current.charAt(i);
+			// determine change in state;
+			LexerState currentState = determineStateSwitch(
+										previousState,
+										new SourceLocation(currentLine, currentColumn),
+										currentChar);
+			if (currentState == LexerState.START) {
+				// react to important state change
 
 
+			}
+			else if (currentState == LexerState.ZERO) {
+
+			}
+
+
+
+			previousState = currentState;
+
+		}
+		// retrieve state change
+		// react when state has changed from anything other than start.
+		// typically tokens are submitted when this happens.
+		// if number goes to alphanum, then submit numeral.
+
+		// split up cases:
+		// numbers first -
+			// if 0 first ret 0
+			// else enum till non-digit
+		// 
+
+
+
+		return result;
+
+	}
+
+	private Token convertRangeToToken(String range) {
+
+	}
+
+	private Token filterAlphaOnlyByReserved() {
+		// intercepts latest alpha token and replaces it with possible matches.
 		return new Token(EOF, 0, 0, null, new SourceLocation(1, 1));
+	}
+
+	private Token filterOtherCharByReserved() {
+		// intercepts latest other-char token and replaces it with possible matches.
+		return new Token(EOF, 0, 0, null, new SourceLocation(1, 1));
+	}
+
+	private LexerState determineStateSwitch(
+		LexerState start,
+		SourceLocation location,
+		char current
+	) throws LexicalException {
+
+		// handle immediate potential errors:
+
+		// complete comments are totally ignored.
+		// that means incomplete comments must throw errors.
+		if (LexicalStructure.isCommentChar(current)) {
+			throw new LexicalException(location, "Incomplete comment declaration.");
+		}
+		else if (LexicalStructure.isUnprintable(current)) {
+			throw new LexicalException(location, "Unprintable character found.");
+		}
+
+		if (start == LexerState.START) {
+			// alpha, number, other
+			if (Character.isAlphabetic(current))
+				return LexerState.ALPHA_ONLY;
+			else if (Character.isDigit(current))
+				if (current == '0')
+					return LexerState.ZERO;
+				else return LexerState.NUMERAL;
+			else {
+				if (current == LexicalStructure.StringDelimiter)
+					return LexerState.STRING;
+				else if (current == LexicalStructure.IdentDelimiter)
+					return LexerState.IDENTIFIER;
+				return LexerState.OTHERCHAR;
+			}
+		}
+		else if (start == LexerState.ALPHA_ONLY) {
+			if (Character.isDigit(current))
+				return LexerState.ALPHANUMERIC;
+			return LexerState.START;
+		}
+		else if (start == LexerState.STRING) {
+			if (current == LexicalStructure.StringDelimiter)
+				return LexerState.START;
+		}
+		else if (start == LexerState.IDENTIFIER) {
+			if (LexicalStructure.isOtherChar(current)) {
+				return LexerState.START;
+			}
+		}
+		else if (start == LexerState.OTHERCHAR) {
+			if (!LexicalStructure.isOtherChar(current))
+				return LexerState.START;
+		}
+		return LexerState.START; 
+
 	}
 
 
