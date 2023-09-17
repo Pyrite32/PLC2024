@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import javax.xml.transform.Source;
 
 public class Lexer implements ILexer {
 
@@ -27,7 +28,8 @@ public class Lexer implements ILexer {
 	private Queue<Token> lexed;
 
 	int currentLine = 0;
-	int currentColumn = 0;
+	int currentColumnRight = 0;
+	int currentColumnLeft = 0;
 
 	public Lexer(String input) {
 		// input is outside-immutable.
@@ -163,9 +165,9 @@ public class Lexer implements ILexer {
 			Token res = lexed.remove();
 			if (res.kind == Kind.ERROR) {
 				throw new LexicalException(
-					res.sourceLocation(),
-					"Some OtherChar Lexical Error with :"
-					+ res.source.toString());
+						res.sourceLocation(),
+						"Some OtherChar Lexical Error with :"
+								+ res.source.toString());
 			}
 			return res;
 		}
@@ -176,38 +178,54 @@ public class Lexer implements ILexer {
 		Token result = null;
 		LexibleCluster currentCluster = lexibles.get(currentLexibleIndex);
 		String current = currentCluster.contents();
-		int startLine = currentCluster.location().line();
-		int startColumn = currentCluster.location().column() + currentColumn;
+
+		// start column is
+		int islandStartLine = currentCluster.location().line();
+		int islandStartColumn = currentCluster.location().column() + currentColumnRight;
 
 		LexerState previousState = LexerState.START;
-		
-		while (currentColumn < current.length()) {
-			char currentChar = current.charAt(currentColumn);
-			int col = startColumn+currentColumn;
+
+		while (currentColumnRight < current.length()) {
+			char currentChar = current.charAt(currentColumnRight);
+			int col = islandStartColumn + currentColumnRight;
+			SourceLocation loc = new SourceLocation(islandStartLine, col);
 			// increment here to prevent infinite loop with '0'.
 			// col reflects the current situation
 			// currentColumn reflects the future situation.
-			currentColumn += 1;
-			
+			currentColumnRight += 1;
+
 			// determine change in state;
 			LexerState currentState = determineStateSwitch(
 					previousState,
 					new SourceLocation(currentLine, col),
 					currentChar);
 			if (currentState == LexerState.START) {
+				// current column right is not the current column.
+				String subrange = current.substring(currentColumnLeft, currentColumnRight);
+				currentColumnLeft = currentColumnRight;
 
-				// react to important state change
-				// most common state switch type
-
-			} 
-			else if (currentState == LexerState.ZERO) {
+				// requires a special intervention:
+				if (previousState == LexerState.OTHERCHAR) {
+					// most advanced procedure:
+					processOtherCharClusters(
+							subrange,
+							new SourceLocation(islandStartLine, col));
+					// get me the first lexed OtherCharCluster NOW.
+					return lexed.remove();
+				}
+				// all other tokens are predictable in nature.
+				else {
+					return convertRangeToToken(previousState, subrange, col, loc);
+				}
+				// anchor the state.
+			} else if (currentState == LexerState.ZERO) {
+				// instantly terminate this token!
 				result = new Token(
-					Kind.NUM_LIT,
-					col,
-					1,
-					new char['0'],
-					new SourceLocation(startLine, col)
-					);
+						Kind.NUM_LIT,
+						col,
+						1,
+						new char['0'],
+						new SourceLocation(islandStartLine, col));
 				break;
 				// instantly convert and recieve and convert '0' token.
 			}
@@ -215,20 +233,88 @@ public class Lexer implements ILexer {
 			previousState = currentState;
 
 		}
-		currentColumn = 0;
-		return result;
-		// retrieve state change
-		// react when state has changed from anything other than start.
-		// typically tokens are submitted when this happens.
-		// if number goes to alphanum, then submit numeral.
+		currentColumnRight = 0;
+		currentLexibleIndex++;
 
-		// split up cases:
-		// numbers first -
-		// if 0 first ret 0
-		// else enum till non-digit
-		//
+		////////////////////////////////////
+		// handle dangling lexable range: //
+		////////////////////////////////////
+		
+		String subrange = current.substring(currentColumnLeft, current.length());
+		currentColumnLeft = currentColumnRight;
+
+		if (previousState == LexerState.OTHERCHAR) {
+			processOtherCharClusters(
+					subrange,
+					new SourceLocation(islandStartLine, islandStartColumn + current.length()));
+			result = lexed.remove();
+		}
+		// all other tokens are predictable in nature.
+		else {
+			result = convertRangeToToken(
+				previousState,
+				subrange,
+				islandStartColumn + current.length(),
+				new SourceLocation(islandStartLine, islandStartColumn + current.length()));
+		}
+
+		///////////////////////////////////
+		// handle dangling lexable range //
+		///////////////////////////////////
 
 		return result;
+	}
+
+	private void processOtherCharClusters(String source, SourceLocation location) {
+		// OtherChar clusters are only 1-2 chars long.
+		// perform search for 2 char match first, then 1 char match.
+		// add match to queue.
+		// repeat until string is gone.
+		// parse 'junk' into error token.
+		int i = 0;
+		while (i < source.length()) {
+			// double-matching available
+			boolean doubleMatchFailed = true;
+			if (i + 1 < source.length()) {
+				// double match
+				String currentTwoChars = source.charAt(i) + "" + source.charAt(i + 1);
+				Kind kindMatch = LexicalStructure.getKindFromExact(
+						currentTwoChars);
+				// enqueue
+				if (kindMatch != Kind.ERROR) {
+					lexed.add(
+							new Token(kindMatch,
+									location.column() + i,
+									2,
+									currentTwoChars.toCharArray(),
+									location));
+					i += 2;
+					doubleMatchFailed = false;
+				} else
+					doubleMatchFailed = true;
+			}
+			if (doubleMatchFailed) {
+				String currentChar = "" + source.charAt(i);
+				Kind kindMatch = LexicalStructure.getKindFromExact(currentChar);
+				if (kindMatch != Kind.ERROR) {
+					lexed.add(
+							new Token(kindMatch,
+									location.column() + i,
+									1,
+									currentChar.toCharArray(),
+									location));
+				} else {
+					// erroneous token detected!
+					lexed.add(
+							new Token(Kind.ERROR,
+									location.column() + i,
+									1,
+									currentChar.toCharArray(),
+									location));
+				}
+				i += 1;
+			}
+		}
 
 	}
 
@@ -238,7 +324,8 @@ public class Lexer implements ILexer {
 			int position,
 			SourceLocation location)
 			throws LexicalException {
-		// clear most possible ranges
+
+		// try to match reserved keywords and constants first.
 		Kind tokenType = LexicalStructure.getKindFromExact(string);
 		// match immediate types
 		if (tokenType != Kind.ERROR) {
@@ -248,7 +335,7 @@ public class Lexer implements ILexer {
 					string.toCharArray(),
 					location);
 		}
-
+		// types with more rules: Identifiers
 		else if (oldState == LexerState.ALPHA_ONLY ||
 				oldState == LexerState.ALPHANUMERIC) {
 			return new Token(Kind.IDENT,
@@ -256,17 +343,23 @@ public class Lexer implements ILexer {
 					string.length(),
 					string.toCharArray(),
 					location);
-		} 
+		}
 		// attempt to parse a numeral
 		else if (oldState == LexerState.NUMERAL) {
 			try {
 				Integer.parseInt(string);
 			} catch (NumberFormatException e) {
-				throw new LexicalException(location, 
-						  string + " can't be parsed into an int.");
+				throw new LexicalException(location,
+						string + " can't be parsed into an int.");
 			}
 
 			return new Token(Kind.NUM_LIT,
+					position,
+					string.length(),
+					string.toCharArray(),
+					location);
+		} else if (oldState == LexerState.STRING) {
+			return new Token(Kind.STRING_LIT,
 					position,
 					string.length(),
 					string.toCharArray(),
