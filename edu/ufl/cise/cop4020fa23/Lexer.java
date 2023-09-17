@@ -31,6 +31,9 @@ public class Lexer implements ILexer {
 	int currentColumnRight = 0;
 	int currentColumnLeft = 0;
 
+	LexerState currentState;
+	LexerState previousState;
+
 	public Lexer(String input) {
 		// input is outside-immutable.
 		// it consists of all the code
@@ -38,8 +41,13 @@ public class Lexer implements ILexer {
 		// islandize possible Lexer inputs
 		this.input = input;
 
+		LexicalStructure.initializeLexicalStructure();
 		lexibles = new ArrayList<LexibleCluster>();
 		lexed = new LinkedList<Token>();
+
+		currentState = LexerState.START;
+		previousState = LexerState.START;
+
 		loadLexibles();
 	}
 
@@ -57,6 +65,7 @@ public class Lexer implements ILexer {
 		int currentColumn = 0;
 		char previousChar = input.charAt(0);
 		boolean isInComment = false;
+		boolean isInString = false;
 
 		while (anchorRight < input.length()) {
 			char thisChar = input.charAt(anchorRight);
@@ -70,6 +79,7 @@ public class Lexer implements ILexer {
 				if (anchorRight - anchorLeft > 0) {
 					// ignore the whitespace character.
 					String contents = input.substring(anchorLeft, anchorRight);
+					contents = contents.replace("\r", "").replace("\n", "");
 					SourceLocation sloc = new SourceLocation(currentLine, currentColumn);
 					// tellVar("Whitespace Lexible", lexible);
 
@@ -86,10 +96,12 @@ public class Lexer implements ILexer {
 			}
 			// if JUST became comment
 			if (LexicalStructure.isCommentChar(previousChar) &&
-					LexicalStructure.isCommentChar(thisChar)) {
+					LexicalStructure.isCommentChar(thisChar) &&
+					!isInString) {
 				// add lexible
 				if (anchorRight - anchorLeft - 1 > 0) {
 					String contents = input.substring(anchorLeft, anchorRight - 1);
+					contents = contents.replace("\r", "").replace("\n", "");
 					SourceLocation sloc = new SourceLocation(currentLine, currentColumn);
 					// tellVar("Whitespace Lexible", lexible);
 
@@ -101,6 +113,22 @@ public class Lexer implements ILexer {
 				// go into comment mode.
 				// tell("is now comment");
 				isInComment = true;
+			}
+			if (LexicalStructure.isStringChar(thisChar) && !isInComment) {
+				isInString = !isInString;
+				if (!isInString) {
+					if (anchorRight - anchorLeft - 1 > 0) {
+						String contents = input.substring(anchorLeft, anchorRight+1);
+						contents = contents.replace("\r", "").replace("\n", "");
+						SourceLocation sloc = new SourceLocation(currentLine, currentColumn);
+						
+						LexibleCluster lexible = new LexibleCluster(contents, sloc);
+						tellVar("string Lexible", lexible);
+						lexibles.add(lexible);
+						anchorRight += 1;
+						anchorLeft = anchorRight;
+					}
+				}
 			}
 			// if current in whitespace
 			else if (LexicalStructure.isWhiteSpace(previousChar) &&
@@ -164,6 +192,7 @@ public class Lexer implements ILexer {
 		if (!lexed.isEmpty()) {
 			Token res = lexed.remove();
 			if (res.kind == Kind.ERROR) {
+				tell("lexical error from OtherChar:" + res.source.toString());
 				throw new LexicalException(
 						res.sourceLocation(),
 						"Some OtherChar Lexical Error with :"
@@ -178,94 +207,132 @@ public class Lexer implements ILexer {
 		Token result = null;
 		LexibleCluster currentCluster = lexibles.get(currentLexibleIndex);
 		String current = currentCluster.contents();
+		tellVar("current cluster", current);
 
 		// start column is
 		int islandStartLine = currentCluster.location().line();
 		int islandStartColumn = currentCluster.location().column() + currentColumnRight;
 
-		LexerState previousState = LexerState.START;
-
 		while (currentColumnRight < current.length()) {
 			char currentChar = current.charAt(currentColumnRight);
 			int col = islandStartColumn + currentColumnRight;
 			SourceLocation loc = new SourceLocation(islandStartLine, col);
-			// increment here to prevent infinite loop with '0'.
-			// col reflects the current situation
-			// currentColumn reflects the future situation.
+			// increment here so that when the loop is exited,
+			//
 			currentColumnRight += 1;
 
 			// determine change in state;
+			tellVar("currentChar before state-change", currentChar);
 			LexerState currentState = determineStateSwitch(
 					previousState,
 					new SourceLocation(currentLine, col),
 					currentChar);
+			tellVar("old state", previousState);
+			tellVar("new-applied state", currentState);
 			if (currentState == LexerState.START) {
-				// current column right is not the current column.
-				String subrange = current.substring(currentColumnLeft, currentColumnRight);
+				// current column right is the next-in-line column.
+				// can't include the newest character that breaks the flow.
+				String subrange = current.substring(currentColumnLeft, currentColumnRight - 1);
+				tellVar("subrange", subrange);
+				// need to allow the state-changing character to be processed on its own.
+				currentColumnRight -= 1;
 				currentColumnLeft = currentColumnRight;
+				
 
 				// requires a special intervention:
 				if (previousState == LexerState.OTHERCHAR) {
-					// most advanced procedure:
-					processOtherCharClusters(
-							subrange,
-							new SourceLocation(islandStartLine, col));
+					processOtherCharClusters(subrange, new SourceLocation(islandStartLine, col));
+					// prepare for next()
 					// get me the first lexed OtherCharCluster NOW.
-					return lexed.remove();
+					result = lexed.remove();
+				} else if (previousState == LexerState.STRING) {
+					// the terminating string character cannot be considered.
+					currentColumnRight += 1;
+					currentColumnLeft += 1;
+
+					// subrange does not include the " character.
+					subrange += LexicalStructure.StringDelimiter;
+					return convertRangeToToken(
+							previousState,
+							subrange,
+							islandStartColumn + current.length(),
+							new SourceLocation(islandStartLine, islandStartColumn + current.length()));
+				} else {
+					result = convertRangeToToken(previousState, subrange, col, loc);
 				}
-				// all other tokens are predictable in nature.
-				else {
-					return convertRangeToToken(previousState, subrange, col, loc);
-				}
+				currentState = determineStateSwitch(
+					previousState,
+					new SourceLocation(currentLine, col),
+					currentChar);
+				previousState = LexerState.START;
+				return result;
 				// anchor the state.
+
 			} else if (currentState == LexerState.ZERO) {
+				currentColumnLeft = currentColumnRight;
 				// instantly terminate this token!
-				result = new Token(
+				tell("lexing a 0 token!");
+				return new Token(
 						Kind.NUM_LIT,
 						col,
 						1,
-						new char['0'],
+						"0",
 						new SourceLocation(islandStartLine, col));
-				break;
 				// instantly convert and recieve and convert '0' token.
 			}
 
 			previousState = currentState;
 
 		}
-		currentColumnRight = 0;
-		currentLexibleIndex++;
+		tell("THE LOOP HAS BEEN EXITED!!!!!");
 
 		////////////////////////////////////
 		// handle dangling lexable range: //
 		////////////////////////////////////
-		
+
 		String subrange = current.substring(currentColumnLeft, current.length());
-		currentColumnLeft = currentColumnRight;
 
-		if (previousState == LexerState.OTHERCHAR) {
-			processOtherCharClusters(
-					subrange,
-					new SourceLocation(islandStartLine, islandStartColumn + current.length()));
-			result = lexed.remove();
+		currentColumnRight = 0;
+		currentColumnLeft = 0;
+		currentLexibleIndex++;
+
+		if (subrange == "") {
+			// dangerous??????
+			tell("calling next() recursively");
+			previousState = currentState;
+			return next();
+		} else {
+			tellVar("dangling subrange", subrange);
+			currentColumnLeft = currentColumnRight;
+
+			if (previousState == LexerState.OTHERCHAR) {
+				processOtherCharClusters(
+						subrange,
+						new SourceLocation(islandStartLine, islandStartColumn + current.length()));
+				result = lexed.remove();
+			} else if (previousState == LexerState.STRING) {
+				subrange += LexicalStructure.StringDelimiter;
+				result = convertRangeToToken(
+						previousState,
+						subrange,
+						islandStartColumn + current.length(),
+						new SourceLocation(islandStartLine, islandStartColumn + current.length()));
+			}
+			// all other tokens are predictable in nature.
+			else {
+				result = convertRangeToToken(
+						previousState,
+						subrange,
+						islandStartColumn + current.length(),
+						new SourceLocation(islandStartLine, islandStartColumn + current.length()));
+			}
+			previousState = currentState;
+			return result;
 		}
-		// all other tokens are predictable in nature.
-		else {
-			result = convertRangeToToken(
-				previousState,
-				subrange,
-				islandStartColumn + current.length(),
-				new SourceLocation(islandStartLine, islandStartColumn + current.length()));
-		}
-
-		///////////////////////////////////
-		// handle dangling lexable range //
-		///////////////////////////////////
-
-		return result;
 	}
 
 	private void processOtherCharClusters(String source, SourceLocation location) {
+		tell("call processOtherCharClusters() with :" + source);
 		// OtherChar clusters are only 1-2 chars long.
 		// perform search for 2 char match first, then 1 char match.
 		// add match to queue.
@@ -278,17 +345,17 @@ public class Lexer implements ILexer {
 			if (i + 1 < source.length()) {
 				// double match
 				String currentTwoChars = source.charAt(i) + "" + source.charAt(i + 1);
-				Kind kindMatch = LexicalStructure.getKindFromExact(
-						currentTwoChars);
+				Kind kindMatch = LexicalStructure.getKindFromExact(currentTwoChars);
 				// enqueue
 				if (kindMatch != Kind.ERROR) {
 					lexed.add(
 							new Token(kindMatch,
 									location.column() + i,
 									2,
-									currentTwoChars.toCharArray(),
+									currentTwoChars,
 									location));
 					i += 2;
+					tellVar("two-char match", currentTwoChars);
 					doubleMatchFailed = false;
 				} else
 					doubleMatchFailed = true;
@@ -301,16 +368,18 @@ public class Lexer implements ILexer {
 							new Token(kindMatch,
 									location.column() + i,
 									1,
-									currentChar.toCharArray(),
+									currentChar,
 									location));
+					tellVar("one-char-match", currentChar);
 				} else {
 					// erroneous token detected!
 					lexed.add(
 							new Token(Kind.ERROR,
 									location.column() + i,
 									1,
-									currentChar.toCharArray(),
+									currentChar,
 									location));
+					tellVar("bad other-char", currentChar);
 				}
 				i += 1;
 			}
@@ -324,24 +393,27 @@ public class Lexer implements ILexer {
 			int position,
 			SourceLocation location)
 			throws LexicalException {
-
+		tell("call convertRangeToToken() with :" + string);
+		tellVar("this state", oldState.toString());
 		// try to match reserved keywords and constants first.
 		Kind tokenType = LexicalStructure.getKindFromExact(string);
 		// match immediate types
-		if (tokenType != Kind.ERROR) {
+		if (tokenType != null && tokenType != Kind.ERROR) {
+			tell("return matched type:" + tokenType.toString());
 			return new Token(tokenType,
 					position,
 					string.length(),
-					string.toCharArray(),
+					string,
 					location);
 		}
 		// types with more rules: Identifiers
 		else if (oldState == LexerState.ALPHA_ONLY ||
 				oldState == LexerState.ALPHANUMERIC) {
+			tell("returning identifier :" + string);
 			return new Token(Kind.IDENT,
 					position,
 					string.length(),
-					string.toCharArray(),
+					string,
 					location);
 		}
 		// attempt to parse a numeral
@@ -352,19 +424,22 @@ public class Lexer implements ILexer {
 				throw new LexicalException(location,
 						string + " can't be parsed into an int.");
 			}
-
+			tell("returning new numeral :" + string);
 			return new Token(Kind.NUM_LIT,
 					position,
 					string.length(),
-					string.toCharArray(),
+					string,
 					location);
 		} else if (oldState == LexerState.STRING) {
+			tell("returning new string literal :" + string);
+
 			return new Token(Kind.STRING_LIT,
 					position,
 					string.length(),
-					string.toCharArray(),
+					string,
 					location);
 		}
+		tell("returning new erroneous token");
 		return new Token(Kind.ERROR, 0, 0, null, new SourceLocation(1, 1));
 	}
 
@@ -377,7 +452,7 @@ public class Lexer implements ILexer {
 
 		// complete comments are totally ignored.
 		// that means incomplete comments must throw errors.
-		if (LexicalStructure.isCommentChar(current)) {
+		if (LexicalStructure.isIllegal(current) && start != LexerState.STRING) {
 			throw new LexicalException(location, "Incomplete comment declaration.");
 		} else if (LexicalStructure.isUnprintable(current)) {
 			throw new LexicalException(location, "Unprintable character found.");
@@ -393,27 +468,40 @@ public class Lexer implements ILexer {
 				else
 					return LexerState.NUMERAL;
 			else {
+				tellVar("currently-state-changing-special character", current );
 				if (current == LexicalStructure.StringDelimiter)
 					return LexerState.STRING;
-				else if (current == LexicalStructure.IdentDelimiter)
+				else if (!LexicalStructure.isIdentifierPrefix(current)) {
 					return LexerState.IDENTIFIER;
+				}
 				return LexerState.OTHERCHAR;
 			}
 		} else if (start == LexerState.ALPHA_ONLY) {
+			if (Character.isAlphabetic(current))
+				return LexerState.ALPHA_ONLY;
 			if (Character.isDigit(current))
 				return LexerState.ALPHANUMERIC;
-			return LexerState.START;
-		} else if (start == LexerState.STRING) {
-			if (current == LexicalStructure.StringDelimiter)
-				return LexerState.START;
-		} else if (start == LexerState.IDENTIFIER) {
-			if (LexicalStructure.isOtherChar(current)) {
-				return LexerState.START;
+		} else if (start == LexerState.ALPHANUMERIC) {
+			if (Character.isAlphabetic(current) ||
+					Character.isDigit(current)) {
+				return LexerState.ALPHANUMERIC;
 			}
+		} else if (start == LexerState.STRING) {
+			tell("string state");
+			if (current != LexicalStructure.StringDelimiter)
+				return LexerState.STRING;
+			;
+		} else if (start == LexerState.IDENTIFIER) {
+			if (Character.isAlphabetic(current) || Character.isDigit(current))
+				return LexerState.IDENTIFIER;
 		} else if (start == LexerState.OTHERCHAR) {
-			if (!LexicalStructure.isOtherChar(current))
-				return LexerState.START;
+			if (LexicalStructure.isOtherChar(current))
+				return LexerState.OTHERCHAR;
+		} else if (start == LexerState.NUMERAL) {
+			if (Character.isDigit(current))
+				return LexerState.NUMERAL;
 		}
+
 		return LexerState.START;
 
 	}

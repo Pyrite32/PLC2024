@@ -13,7 +13,7 @@ public final class LexicalStructure {
 	private static HashMap<String, Kind> twoCharLiterals;
 
 
-    static {
+    public static final void initializeLexicalStructure() {
     
         alphabeticLiterals = new HashMap<String, Kind>();
         oneCharLiterals = new HashMap<String, Kind>();
@@ -80,6 +80,7 @@ public final class LexicalStructure {
         twoCharLiterals.put(LexicalStructure.RArrow, Kind.RARROW);
         twoCharLiterals.put(LexicalStructure.Box, Kind.BOX);
     }
+
     public static final String[] BooleanLit = {
         "TRUE",
         "FALSE"
@@ -153,6 +154,7 @@ public final class LexicalStructure {
     public static final char IncompleteComment = '#';
     public static final char StringDelimiter = '\"';
     public static final char IdentDelimiter = '_';
+    public static final char Illegal = '@';
 
     public static final boolean isWhiteSpace(char character) {
         return (character == ' ' || character == '\n' || character == '\r');
@@ -160,6 +162,12 @@ public final class LexicalStructure {
 
     public static final Kind getKindFromExact(String string) {
         Kind result = alphabeticLiterals.get(string);
+        if (result != null)
+        return result;
+        result = oneCharLiterals.get(string);
+        if (result != null)
+        return result;
+        result = twoCharLiterals.get(string);
         return result;
     }
 
@@ -176,7 +184,19 @@ public final class LexicalStructure {
     }
 
     public static final boolean isCommentChar(char character) {
-        return character == '#';
+        return character == LexicalStructure.IncompleteComment;
+    }
+
+    public static final boolean isStringChar(char character) {
+        return character == LexicalStructure.StringDelimiter;
+    }
+
+    public static final boolean isIllegal(char character) {
+        return character == LexicalStructure.Illegal || character == LexicalStructure.IncompleteComment;
+    }
+
+    public static final boolean isIdentifierPrefix(char character) {
+        return character == LexicalStructure.IdentDelimiter;
     }
 
     public static final boolean isOtherChar(char character) {
