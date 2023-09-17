@@ -200,6 +200,6 @@ public final class LexicalStructure {
     }
 
     public static final boolean isOtherChar(char character) {
-        return !(Character.isAlphabetic(character) && Character.isDigit(character));
+        return !Character.isAlphabetic(character) && !Character.isDigit(character);
     }
 }
