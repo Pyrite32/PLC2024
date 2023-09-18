@@ -71,7 +71,7 @@ public class Lexer implements ILexer {
 		boolean isInComment = false;
 		boolean isInString = false;
 
-		tellVar("THE ENTIRE TEXT", input);
+		////tellVar("THE ENTIRE TEXT", input);
 
 		while (anchorRight < input.length()) {
 			char thisChar = input.charAt(anchorRight);
@@ -79,18 +79,18 @@ public class Lexer implements ILexer {
 			if (isInComment) {
 				anchorLeft = anchorRight;
 			}
-			System.out.println(previousChar);
+			//System.out.println(previousChar);
 			if ((!LexicalStructure.isWhiteSpace(previousChar) &&
 					LexicalStructure.isWhiteSpace(thisChar))) {
-				System.out.println("newline entered!");
+				//System.out.println("newline entered!");
 				// add lexible
 				if (anchorRight - anchorLeft > 0) {
 					// ignore the whitespace character.
 					String contents = input.substring(anchorLeft, anchorRight);
 					contents = contents.replace("\r", "").replace("\n", "");
 					SourceLocation sloc = new SourceLocation(currentLine, currentColumn-contents.length());
-					//tell("lexing " + contents + " with source : " + sloc.toString());
-					// //tellVar("Whitespace Lexible", lexible);
+					////tell("lexing " + contents + " with source : " + sloc.toString());
+					// //////tellVar("Whitespace Lexible", lexible);
 
 					LexibleCluster lexible = new LexibleCluster(contents, sloc);
 					lexibles.add(lexible);
@@ -101,7 +101,7 @@ public class Lexer implements ILexer {
 				}
 				anchorLeft = anchorRight;
 
-				// //tell("now whitespace");
+				// ////tell("now whitespace");
 			}
 			// if JUST became comment
 			if (LexicalStructure.isCommentChar(previousChar) &&
@@ -112,16 +112,16 @@ public class Lexer implements ILexer {
 					String contents = input.substring(anchorLeft, anchorRight - 1);
 					contents = contents.replace("\r", "").replace("\n", "");
 					SourceLocation sloc = new SourceLocation(currentLine, currentColumn-contents.length());
-					// //tellVar("Whitespace Lexible", lexible);
-					//tell("lexing " + contents + " with source : " + sloc.toString());
+					// //////tellVar("Whitespace Lexible", lexible);
+					////tell("lexing " + contents + " with source : " + sloc.toString());
 
 					LexibleCluster lexible = new LexibleCluster(contents, sloc);
 					lexibles.add(lexible);
 				} else {
-					// //tell("rejected lexible in JUST invalid comments");
+					// ////tell("rejected lexible in JUST invalid comments");
 				}
 				// go into comment mode.
-				// //tell("is now comment");
+				// ////tell("is now comment");
 				isInComment = true;
 			}
 			if (LexicalStructure.isStringChar(thisChar) && !isInComment) {
@@ -131,10 +131,10 @@ public class Lexer implements ILexer {
 						String contents = input.substring(anchorLeft, anchorRight+1);
 						contents = contents.replace("\r", "").replace("\n", "");
 						SourceLocation sloc = new SourceLocation(currentLine, currentColumn-contents.length());
-						//tell("lexing " + contents + " with source : " + sloc.toString());
+						////tell("lexing " + contents + " with source : " + sloc.toString());
 
 						LexibleCluster lexible = new LexibleCluster(contents, sloc);
-						////tellVar("string Lexible", lexible);
+						////////tellVar("string Lexible", lexible);
 						lexibles.add(lexible);
 						anchorRight += 1;
 						anchorLeft = anchorRight;
@@ -152,7 +152,7 @@ public class Lexer implements ILexer {
 			// invalidate comment mode
 			else if (isInComment && !LexicalStructure.isCRLF(previousChar) &&
 					LexicalStructure.isCRLF(thisChar)) {
-				// //tell("is no longer comment");
+				// ////tell("is no longer comment");
 				isInComment = false;
 			}
 			// if just exited whitespace
@@ -167,7 +167,7 @@ public class Lexer implements ILexer {
 			previousChar = thisChar;
 			currentColumn += 1;
 			anchorRight += 1;
-			//tellVar("current column", currentColumn);
+			//////tellVar("current column", currentColumn);
 		}
 		// final lexible
 		if (anchorRight - anchorLeft > 0) {
@@ -179,13 +179,13 @@ public class Lexer implements ILexer {
 			if (!contents.isEmpty()) {
 				SourceLocation sloc = new SourceLocation(currentLine, currentColumn-contents.length());
 				LexibleCluster lexible = new LexibleCluster(contents, sloc);
-				//tell("lexing " + contents + " with source : " + sloc.toString());
+				////tell("lexing " + contents + " with source : " + sloc.toString());
 				lexibles.add(lexible);
-				// //tellVar("Final Lexible", lexible);
+				// //////tellVar("Final Lexible", lexible);
 			}
 		}
 
-		// //tellVar("Lexibles Size",lexibles.size());
+		// //////tellVar("Lexibles Size",lexibles.size());
 
 	}
 
@@ -208,7 +208,7 @@ public class Lexer implements ILexer {
 		if (!lexed.isEmpty()) {
 			Token res = lexed.remove();
 			if (res.kind == Kind.ERROR) {
-				//tell("lexical error from OtherChar:" + res.source.toString());
+				////tell("lexical error from OtherChar:" + res.source.toString());
 				throw new LexicalException(
 						res.sourceLocation(),
 						"Some OtherChar Lexical Error with :"
@@ -228,33 +228,33 @@ public class Lexer implements ILexer {
 		int islandStartLine = currentCluster.location().line();
 		int islandStartColumn = currentCluster.location().column();
 
-		tellVar("island source", currentCluster.location());
+		////tellVar("island source", currentCluster.location());
 
 		while (currentColumnRight < current.length()) {
 			char currentChar = current.charAt(currentColumnRight);
 			int col = islandStartColumn + currentColumnRight;
 			SourceLocation loc = new SourceLocation(islandStartLine, islandStartColumn+currentColumnLeft);
 
-			////tellVar("current col", islandStartColumn);
-			tellVar("the current loc", loc);
+			////////tellVar("current col", islandStartColumn);
+			////tellVar("the current loc", loc);
 
 			// increment here so that when the loop is exited,
 			//
 			currentColumnRight += 1;
 
 			// determine change in state;
-			////tellVar("currentChar before state-change", currentChar);
+			////////tellVar("currentChar before state-change", currentChar);
 			LexerState currentState = determineStateSwitch(
 					previousState,
 					loc,
 					currentChar);
-			////tellVar("old state", previousState);
-			////tellVar("new-applied state", currentState);
+			////////tellVar("old state", previousState);
+			////////tellVar("new-applied state", currentState);
 			if (currentState == LexerState.START) {
 				// current column right is the next-in-line column.
 				// can't include the newest character that breaks the flow.
 				String subrange = current.substring(currentColumnLeft, currentColumnRight - 1);
-				////tellVar("subrange", subrange);
+				////////tellVar("subrange", subrange);
 				// need to allow the state-changing character to be processed on its own.
 				currentColumnRight -= 1;
 				currentColumnLeft = currentColumnRight;
@@ -292,7 +292,7 @@ public class Lexer implements ILexer {
 			} else if (currentState == LexerState.ZERO) {
 				currentColumnLeft = currentColumnRight;
 				// instantly terminate this token!
-				////tell("lexing a 0 token!");
+				//////tell("lexing a 0 token!");
 				return new Token(
 						Kind.NUM_LIT,
 						col,
@@ -305,7 +305,7 @@ public class Lexer implements ILexer {
 			previousState = currentState;
 
 		}
-		////tell("THE LOOP HAS BEEN EXITED!!!!!");
+		//////tell("THE LOOP HAS BEEN EXITED!!!!!");
 
 		////////////////////////////////////
 		// handle dangling lexable range: //
@@ -320,11 +320,11 @@ public class Lexer implements ILexer {
 
 		if (subrange == "") {
 			// dangerous??????
-			////tell("calling next() recursively");
+			//////tell("calling next() recursively");
 			previousState = currentState;
 			return next();
 		} else {
-			////tellVar("dangling subrange", subrange);
+			////////tellVar("dangling subrange", subrange);
 			currentColumnLeft = currentColumnRight;
 
 			if (previousState == LexerState.OTHERCHAR) {
@@ -354,8 +354,8 @@ public class Lexer implements ILexer {
 	}
 
 	private void processOtherCharClusters(String source, SourceLocation location) {
-		//tellVar("process other chars sloc", location);
-		////tell("call processOtherCharClusters() with :" + source);
+		//////tellVar("process other chars sloc", location);
+		//////tell("call processOtherCharClusters() with :" + source);
 		// OtherChar clusters are only 1-2 chars long.
 		// perform search for 2 char match first, then 1 char match.
 		// add match to queue.
@@ -378,7 +378,7 @@ public class Lexer implements ILexer {
 									currentTwoChars,
 									new SourceLocation(location.line(), location.column()+i)));
 					i += 2;
-					////tellVar("two-char match", currentTwoChars);
+					////////tellVar("two-char match", currentTwoChars);
 					doubleMatchFailed = false;
 				} else
 					doubleMatchFailed = true;
@@ -393,7 +393,7 @@ public class Lexer implements ILexer {
 									1,
 									currentChar,
 									new SourceLocation(location.line(), location.column()+i)));
-					////tellVar("one-char-match found!", currentChar);
+					////////tellVar("one-char-match found!", currentChar);
 				} else {
 					// erroneous token detected!
 					lexed.add(
@@ -402,7 +402,7 @@ public class Lexer implements ILexer {
 									1,
 									currentChar,
 									new SourceLocation(location.line(), location.column()+i)));
-					////tellVar("bad other-char", currentChar);
+					////////tellVar("bad other-char", currentChar);
 				}
 				i += 1;
 			}
@@ -416,16 +416,16 @@ public class Lexer implements ILexer {
 			int position,
 			SourceLocation location)
 			throws LexicalException {
-		////tell("call convertRangeToToken() with :" + string);
-		////tellVar("this state", oldState.toString());
+		//////tell("call convertRangeToToken() with :" + string);
+		////////tellVar("this state", oldState.toString());
 		// try to match reserved keywords and constants first.
 
-		tellVar("location", location);
-		tellVar("the string is: ", string);
+		////tellVar("location", location);
+		////tellVar("the string is: ", string);
 		Kind tokenType = LexicalStructure.getKindFromExact(string);
 		// match immediate types
 		if (tokenType != null && tokenType != Kind.ERROR) {
-			////tell("return matched type:" + tokenType.toString());
+			//////tell("return matched type:" + tokenType.toString());
 			return new Token(tokenType,
 					position,
 					string.length(),
@@ -435,7 +435,7 @@ public class Lexer implements ILexer {
 		// types with more rules: Identifiers
 		else if (oldState == LexerState.ALPHA_ONLY ||
 				oldState == LexerState.ALPHANUMERIC) {
-			////tell("returning identifier :" + string);
+			//////tell("returning identifier :" + string);
 			return new Token(Kind.IDENT,
 					position,
 					string.length(),
@@ -450,14 +450,14 @@ public class Lexer implements ILexer {
 				throw new LexicalException(location,
 						string + " can't be parsed into an int.");
 			}
-			////tell("returning new numeral :" + string);
+			//////tell("returning new numeral :" + string);
 			return new Token(Kind.NUM_LIT,
 					position,
 					string.length(),
 					string,
 					location);
 		} else if (oldState == LexerState.STRING) {
-			////tell("returning new string literal :" + string);
+			//////tell("returning new string literal :" + string);
 
 			return new Token(Kind.STRING_LIT,
 					position,
@@ -465,7 +465,7 @@ public class Lexer implements ILexer {
 					string,
 					location);
 		}
-		////tell("returning new erroneous token");
+		//////tell("returning new erroneous token");
 		return new Token(Kind.ERROR, 0, 0, null, new SourceLocation(1, 1));
 	}
 
@@ -511,7 +511,7 @@ public class Lexer implements ILexer {
 				return LexerState.ALPHANUMERIC;
 			}
 		} else if (start == LexerState.STRING) {
-			////tell("string state");
+			//////tell("string state");
 			if (current != LexicalStructure.StringDelimiter)
 				return LexerState.STRING;
 			;
