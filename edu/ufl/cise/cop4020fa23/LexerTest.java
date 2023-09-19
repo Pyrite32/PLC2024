@@ -875,6 +875,156 @@ class LexerTest {
 		checkIdent("false",2,6,lexer.next());
 		checkIdent("true",2,12,lexer.next());
 	}
+
+	@Test
+	void cutoffTest() throws LexicalException {
+		String input = """
+				[
+				>
+				<
+				:
+				*
+				-
+				|
+				&
+				=
+				#
+				""";
+		ILexer lexer = ComponentFactory.makeLexer(input);
+		checkToken(LSQUARE, lexer.next());
+		checkToken(GT, lexer.next());
+		checkToken(LT, lexer.next());
+		checkToken(Kind.COLON, lexer.next());
+		checkToken(Kind.TIMES, lexer.next());
+		checkToken(MINUS, lexer.next());
+		checkToken(Kind.BITOR, lexer.next());
+		checkToken(BITAND, lexer.next());
+		checkToken(ASSIGN, lexer.next());
+		LexicalException e = assertThrows(LexicalException.class, () -> {
+			lexer.next();
+		});
+
+		//checkEOF(lexer.next());
+	}
+
+	/**
+	 * This test checks if multiple character tokens are handled correctly when cut off by the EOF
+	 *
+	 * @throws LexicalException
+	 */
+	@Test
+	void eofTest() throws LexicalException {
+		String input = "[";
+		ILexer lexer = ComponentFactory.makeLexer(input);
+		checkToken(LSQUARE, lexer.next());
+		checkEOF(lexer.next());
+
+		input = ">";
+		lexer = ComponentFactory.makeLexer(input);
+		checkToken(GT, lexer.next());
+		checkEOF(lexer.next());
+
+		input = "<";
+		lexer = ComponentFactory.makeLexer(input);
+		checkToken(LT, lexer.next());
+		checkEOF(lexer.next());
+
+		input = ":";
+		lexer = ComponentFactory.makeLexer(input);
+		checkToken(Kind.COLON, lexer.next());
+		checkEOF(lexer.next());
+
+		input = "*";
+		lexer = ComponentFactory.makeLexer(input);
+		checkToken(Kind.TIMES, lexer.next());
+		checkEOF(lexer.next());
+
+		input = "-";
+		lexer = ComponentFactory.makeLexer(input);
+		checkToken(MINUS, lexer.next());
+		checkEOF(lexer.next());
+
+		input = "|";
+		lexer = ComponentFactory.makeLexer(input);
+		checkToken(Kind.BITOR, lexer.next());
+		checkEOF(lexer.next());
+
+		input = "&";
+		lexer = ComponentFactory.makeLexer(input);
+		checkToken(BITAND, lexer.next());
+		checkEOF(lexer.next());
+
+		input = "=";
+		lexer = ComponentFactory.makeLexer(input);
+		checkToken(ASSIGN, lexer.next());
+		checkEOF(lexer.next());
+
+		input = "abc";
+		lexer = ComponentFactory.makeLexer(input);
+		checkToken(IDENT, "abc", lexer.next());
+		checkEOF(lexer.next());
+
+		input = "123";
+		lexer = ComponentFactory.makeLexer(input);
+		checkToken(NUM_LIT, "123", lexer.next());
+		checkEOF(lexer.next());
+
+		input = "#";
+		ILexer lexer1 = ComponentFactory.makeLexer(input);
+		LexicalException e = assertThrows(LexicalException.class, () -> {
+			lexer1.next();
+		});
+
+	}
+
+	/**
+	 * This test checks if the Lexer can recognize all alphabet chars and all numbers 0-9
+	 */
+	@Test
+	void abc123Test() throws LexicalException {
+		String input = """
+				abcdefghijklmnopqrstuvwxyz
+				ABCDEFGHIJKLMNOPQRSTUVWXYZ
+				1234567890
+				""";
+		ILexer lexer = ComponentFactory.makeLexer(input);
+		checkToken(IDENT, "abcdefghijklmnopqrstuvwxyz", lexer.next());
+		checkToken(IDENT, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", lexer.next());
+		checkToken(NUM_LIT, "1234567890", lexer.next());
+		checkEOF(lexer.next());
+	}
+
+	/**
+	 * This test checks if the Lexer can recognize all printable ASCII chars
+	 */
+	@Test
+	void asciiTest() throws LexicalException {
+		String input = """
+				"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890! #$%&'()*+,-./:;<=>?@[]^_`{|}~"
+				""";
+		ILexer lexer = ComponentFactory.makeLexer(input);
+		checkString("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890! #$%&'()*+,-./:;<=>?@[]^_`{|}~", lexer.next());
+		checkEOF(lexer.next());
+	}
+
+	/* This test checks if the Lexer throws a Lexical Exception when encountering non-printable ASCII chars in string literals
+	*/
+   @Test
+   void invalidStrLitTest() throws LexicalException {
+	   String input = """
+			   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890! #$%&'()*+,-./:;<=>?@[]^_`{|}~
+			   "
+			   """;
+	   ILexer lexer = ComponentFactory.makeLexer(input);
+	   LexicalException e1 = assertThrows(LexicalException.class, () -> {
+		   lexer.next();
+	   });
+	   LexicalException e2 = assertThrows(LexicalException.class, () -> {
+		   lexer.next();
+	   });
+	   checkEOF(lexer.next());
+   }
+
  
 }
 

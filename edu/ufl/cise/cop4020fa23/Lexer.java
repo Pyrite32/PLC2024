@@ -318,7 +318,7 @@ public class Lexer implements ILexer {
 		currentColumnLeft = 0;
 		currentLexibleIndex++;
 
-		if (subrange == "") {
+		if (subrange == "" || previousState == LexerState.STRING) {
 			// dangerous??????
 			//////tell("calling next() recursively");
 			previousState = currentState;
@@ -423,6 +423,9 @@ public class Lexer implements ILexer {
 		////tellVar("location", location);
 		////tellVar("the string is: ", string);
 		Kind tokenType = LexicalStructure.getKindFromExact(string);
+		if (string == "_") {
+			throw new LexicalException(location, string);
+		}
 		// match immediate types
 		if (tokenType != null && tokenType != Kind.ERROR) {
 			//////tell("return matched type:" + tokenType.toString());
