@@ -13,7 +13,6 @@ package edu.ufl.cise.cop4020fa23;
  *  enum representing different Token kinds for compiler
  */
 public enum Kind {
-	ERROR,
 	IDENT,
 	NUM_LIT,
 	STRING_LIT,
@@ -67,6 +66,7 @@ public enum Kind {
 	RARROW, // ->
 	BOX, //  []
 	EOF,
+	ERROR;
 
 	
 }

@@ -266,6 +266,10 @@ public class Lexer implements ILexer {
 					// prepare for next()
 					// get me the first lexed OtherCharCluster NOW.
 					result = lexed.remove();
+					
+					if (result.kind() == Kind.ERROR) {
+						throw new LexicalException(loc, subrange);
+					}
 				} else if (previousState == LexerState.STRING) {
 					// the terminating string character cannot be considered.
 					currentColumnRight += 1;
@@ -361,6 +365,7 @@ public class Lexer implements ILexer {
 		// add match to queue.
 		// repeat until string is gone.
 		// parse 'junk' into error token.
+		
 		int i = 0;
 		while (i < source.length()) {
 			// double-matching available
@@ -461,15 +466,15 @@ public class Lexer implements ILexer {
 					location);
 		} else if (oldState == LexerState.STRING) {
 			//////tell("returning new string literal :" + string);
-
+			
 			return new Token(Kind.STRING_LIT,
 					position,
 					string.length(),
 					string,
 					location);
 		}
+		throw new LexicalException(location, string);
 		//////tell("returning new erroneous token");
-		return new Token(Kind.ERROR, 0, 0, null, new SourceLocation(1, 1));
 	}
 
 	private LexerState determineStateSwitch(
