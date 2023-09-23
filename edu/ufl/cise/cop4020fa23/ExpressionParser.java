@@ -121,29 +121,32 @@ public class ExpressionParser implements IParser {
 		IToken current = tokens.get(0);
 		if (tokenIsKindOf(current, Kind.BOOLEAN_LIT, STRING_LIT, NUM_LIT, IDENT))
 			root = getAtomic(current);
+		else if (tokenIsKindOf(current, RES_red, RES_green, RES_blue))
+			root = getChannelSelector();
 		if (tokenIsKindOf(current, LSQUARE))
 		{
+			// 
 			// begin pixel selection
 			Expr pixelX, pixelY;
 			IToken name;
 			ArrayList<IToken> expressionLeft = new ArrayList<>();
 			ArrayList<IToken> expressionRight = new ArrayList<>();
-			for (int i = 0; tokens.get(i).kind() != COMMA; i++)
-			{
-
-			}
+			ArrayList<IToken> list = untilKind(after(tokens,0), RSQUARE); // skip first elem, get all elements before RSQUARE
+			var duo = splitBy(list, COMMA); // remove comma from evaluation.
+			pixelX = (Expr)parseTokenList(duo.get(0));
+			pixelY = (Expr)parseTokenList(duo.get(1));
 		}
 	}
 
-	protected ArrayList<ArrayList<Kind>> splitList(ArrayList<Kind> list, Kind delimiter)
+	protected ArrayList<ArrayList<IToken>> splitBy(ArrayList<IToken> list, Kind delimiter)
 	{
 		boolean foundDelimiter = false;
 
-		ArrayList<Kind> firstList = new ArrayList<>();
-        ArrayList<Kind> secondList = new ArrayList<>();
+		ArrayList<IToken> firstList = new ArrayList<>();
+        ArrayList<IToken> secondList = new ArrayList<>();
 
-        for (Kind item : list) {
-            if (item.equals(delimiter)) {
+        for (IToken item : list) {
+            if (item.kind().equals(delimiter)) {
                 foundDelimiter = true;
                 continue; // Skip adding the delimiter itself to the lists
             }
@@ -153,24 +156,44 @@ public class ExpressionParser implements IParser {
                 firstList.add(item);
             }
         }
-		ArrayList<ArrayList<Kind>> result = new ArrayList<ArrayList<Kind>>();
+		ArrayList<ArrayList<IToken>> result = new ArrayList<ArrayList<IToken>>();
 		result.add(firstList);
 		result.add(secondList);
 		return result;
 	}
 
-	protected ArrayList<Kind> getUntil(ArrayList<Kind> list, Kind stop)
+	// kind-noninclusive.
+	protected ArrayList<IToken> untilKind(ArrayList<IToken> list, Kind stop)
 	{
-		ArrayList<Kind> kinds = new ArrayList<>();
-		
+		ArrayList<IToken> result = new ArrayList<>();
+		for (int i = 0; i < list.size(); i++)
+		{
+			if (list.get(i).kind().equals(stop));
+				break;
+			result.add(list.get(i));
+		}
+		return result;
+	}
+	
+	protected ArrayList<IToken> after(ArrayList<IToken> list, int location)
+	{
+		ArrayList<IToken> result = new ArrayList<IToken>();
+		for (int i = location+1; i < list.size(); i++)
+		{
+			result.add(list.get(i));
+		}
+		return result;
+		// 
 	}
 
-	
-	protected ArrayList<Kind> after(ArrayList<Kind> list, int location)
+	protected ArrayList<IToken> before(ArrayList<IToken> list, int location)
 	{
-		ArrayList<Kind> kinds = new ArrayList<>();
-		// 
-		
+		ArrayList<IToken> result = new ArrayList<IToken>();
+		for (int i = 0; i < location && i < list.size(); i++)
+		{
+			result.add(list.get(i));
+		}
+		return result;
 	}
 
 
