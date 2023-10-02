@@ -45,9 +45,6 @@ import static edu.ufl.cise.cop4020fa23.Kind.TIMES;
 import static edu.ufl.cise.cop4020fa23.Kind.CONST;
 
 import java.util.Arrays;
-import java.util.List;
-import java.security.InvalidAlgorithmParameterException;
-import java.util.ArrayList;
 
 import edu.ufl.cise.cop4020fa23.ast.AST;
 import edu.ufl.cise.cop4020fa23.ast.BinaryExpr;
@@ -67,7 +64,8 @@ import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
 import edu.ufl.cise.cop4020fa23.exceptions.PLCCompilerException;
 import edu.ufl.cise.cop4020fa23.exceptions.SyntaxException;
 
-import java.util.Stack;
+import java.util.ArrayList;
+import java.util.HashSet;
 
 /**
 Expr::=  ConditionalExpr | LogicalOrExpr    
@@ -91,8 +89,12 @@ Dimension  ::=  [ Expr , Expr ]
 
 public class ExpressionParser implements IParser {
 	
-	final ILexer myLexer;
-	private ArrayList<IToken> myTokenList;
+	final ILexer lexer;
+	private AST root;
+
+	int parenDepth = 0;
+
+	
 
 	/**
 	 * @param lexer
@@ -100,104 +102,201 @@ public class ExpressionParser implements IParser {
 	 */
 	public ExpressionParser(ILexer lexer) throws LexicalException {
 		super();
-		this.myLexer = lexer;
-		myTokenList = new ArrayList<>();
-		IToken current = lexer.next();
-		while (current != null && current.kind() != Kind.EOF) {
-			myTokenList.add(current);
-			current = lexer.next();
+		this.lexer = lexer;
+	}
+
+	@Override
+	public AST parse() throws PLCCompilerException {
+		// runs only once.
+		IToken t = lexer.next();
+
+		while (t.kind() != Kind.EOF) {
+			useNext(t);
+			t = lexer.next();
 		}
+		guardAgainst(root == null, "Nothing to compile.");
+		assertTrue(isASTComplete(root), "Tree is incomplete, dangling Expr");
+		return root;
 	}
 
-	protected AST parseRecursivelyWithOffset(ArrayList<IToken> tokens, int length) throws SyntaxException {
-		for (int i = 0; i < length; i++) {
-			tokens.remove(0);
+	protected void useNext(IToken current) throws PLCCompilerException {
+		// determine if the root is empty.
+			// if so, determine the statement type from FIRST:
+			// FILTER_ATOM
+			// ? Cond
+			// [ pixSelector or Postfix
+			// : channelSel or Postfix
+			// ! - width height unary
+			// throw!
+		if (root == null) {
+			root = astFromAtomStandalone(current);
+			if (root == null) {
+				if (current.kind() == QUESTION)
+				root = new ConditionalExpr(current, null, null, null);
+				else if (current.kind() == BANG ||
+						 current.kind() == MINUS ||
+						 current.kind() == RES_width ||
+						 current.kind() == RES_height)
+				{
+					root = new UnaryExpr(current, current, null);
+				}
+				else if (current.kind() == LPAREN)
+				{
+					parenDepth++;
+				}
+				else
+				{
+					throw new SyntaxException("Basis of AST cannot begin with : " + current.kind().toString());
+				}
+			}
+			return;
 		}
-		return parseRecursively(tokens);
-	}
-
-	protected AST parseTokenList(ArrayList<IToken> tokens) throws PLCCompilerException {
-		AST root;
-		IToken current = tokens.get(0);
-		if (tokenIsKindOf(current, Kind.BOOLEAN_LIT, STRING_LIT, NUM_LIT, IDENT))
-			root = getAtomic(current);
-		else if (tokenIsKindOf(current, RES_red, RES_green, RES_blue))
-			root = getChannelSelector();
-		if (tokenIsKindOf(current, LSQUARE))
-		{
-			// 
-			// begin pixel selection
-			Expr pixelX, pixelY;
-			IToken name;
-			ArrayList<IToken> expressionLeft = new ArrayList<>();
-			ArrayList<IToken> expressionRight = new ArrayList<>();
-			ArrayList<IToken> list = untilKind(after(tokens,0), RSQUARE); // skip first elem, get all elements before RSQUARE
-			var duo = splitBy(list, COMMA); // remove comma from evaluation.
-			pixelX = (Expr)parseTokenList(duo.get(0));
-			pixelY = (Expr)parseTokenList(duo.get(1));
+		ExpressionParserContext context = getContext();
+		// only atoms are finished.
+		if (context.isFinished()) {
+			return;
 		}
+		// we are interested in finishing an unfinished context one at a time.
+		
+
+		// modify the current context and child expr.
 	}
 
-	protected ArrayList<ArrayList<IToken>> splitBy(ArrayList<IToken> list, Kind delimiter)
-	{
-		boolean foundDelimiter = false;
-
-		ArrayList<IToken> firstList = new ArrayList<>();
-        ArrayList<IToken> secondList = new ArrayList<>();
-
-        for (IToken item : list) {
-            if (item.kind().equals(delimiter)) {
-                foundDelimiter = true;
-                continue; // Skip adding the delimiter itself to the lists
-            }
-            if (foundDelimiter) {
-                secondList.add(item);
-            } else {
-                firstList.add(item);
-            }
-        }
-		ArrayList<ArrayList<IToken>> result = new ArrayList<ArrayList<IToken>>();
-		result.add(firstList);
-		result.add(secondList);
-		return result;
+	// scan the tree and determine if there are any null parts to the tree.
+	// the null parts are considered incomplete and need to be replaced.
+	protected ExpressionParserContext getContext() throws PLCCompilerException {
+		// set currentRoot
+		// set currentRootChildNum
+		return _getContextRec(root, null, 0);
 	}
-
-	// kind-noninclusive.
-	protected ArrayList<IToken> untilKind(ArrayList<IToken> list, Kind stop)
-	{
-		ArrayList<IToken> result = new ArrayList<>();
-		for (int i = 0; i < list.size(); i++)
-		{
-			if (list.get(i).kind().equals(stop));
-				break;
-			result.add(list.get(i));
+	private ExpressionParserContext _getContextRec(AST currentNode, AST parent, int num) throws PLCCompilerException {
+		
+		// base successful case
+		if (currentNode == null) {
+			if (parent != null) {
+				return new ExpressionParserContext(parent, num, false);
+			}
+			throw new SyntaxException("cannot getContext() on an empty node");
 		}
-		return result;
-	}
-	
-	protected ArrayList<IToken> after(ArrayList<IToken> list, int location)
-	{
-		ArrayList<IToken> result = new ArrayList<IToken>();
-		for (int i = location+1; i < list.size(); i++)
-		{
-			result.add(list.get(i));
+		if (currentNode instanceof BooleanLitExpr ||
+			currentNode instanceof ConstExpr	  ||
+			currentNode instanceof IdentExpr	  ||
+			currentNode instanceof StringLitExpr  ||
+			currentNode instanceof NumLitExpr 	  ||
+			currentNode instanceof ChannelSelector)
+			return new ExpressionParserContext(parent, num, true);
+		// immediately return the first ExpressionParserContext with a isFinished: false.
+		else if (currentNode instanceof ConditionalExpr) {
+			var c = (ConditionalExpr)currentNode;
+			ExpressionParserContext e;
+			e = _getContextRec(c.getGuardExpr(), currentNode, 0);
+			if (!e.isFinished()) return e;
+			e = _getContextRec(c.getTrueExpr(), currentNode, 1);
+			if (!e.isFinished()) return e;
+			e = _getContextRec(c.getFalseExpr(), currentNode, 2);
+			if (!e.isFinished()) return e;
 		}
-		return result;
-		// 
-	}
-
-	protected ArrayList<IToken> before(ArrayList<IToken> list, int location)
-	{
-		ArrayList<IToken> result = new ArrayList<IToken>();
-		for (int i = 0; i < location && i < list.size(); i++)
-		{
-			result.add(list.get(i));
+		else if (currentNode instanceof ExpandedPixelExpr) {
+			var c = (ExpandedPixelExpr)currentNode;
+			ExpressionParserContext e;
+			e = _getContextRec(c.getRed(), currentNode, 0);
+			if (!e.isFinished()) return e;
+			e = _getContextRec(c.getGreen(), currentNode, 1);
+			if (!e.isFinished()) return e;
+			e = _getContextRec(c.getBlue(), currentNode, 2);
+			if (!e.isFinished()) return e;
 		}
-		return result;
+		else if (currentNode instanceof PixelSelector) {
+			var c = (PixelSelector)currentNode;
+			ExpressionParserContext e;
+			e = _getContextRec(c.xExpr(), currentNode, 0);
+			if (!e.isFinished()) return e;
+			e = _getContextRec(c.yExpr(), currentNode, 1);
+			if (!e.isFinished()) return e;
+		}
+		else if (currentNode instanceof PostfixExpr) {
+			var c = (PostfixExpr)currentNode;
+			ExpressionParserContext e;
+			ExpressionParserContext e2;
+			e = _getContextRec(c.primary(), currentNode, 0);
+			if (!e.isFinished()) return e;
+			e = _getContextRec(c.pixel(), currentNode, 1);
+			e2 = _getContextRec(c.channel(), currentNode, 2);
+			if (!e.isFinished() && !e2.isFinished()) return e;
+
+		}
+		else if (currentNode instanceof UnaryExpr) {
+			var c = (UnaryExpr)currentNode;
+			ExpressionParserContext e;
+			e = _getContextRec(c.getExpr(), currentNode, 0);
+			if (!e.isFinished()) return e;
+		}
+		throw new SyntaxException("Could not resolve unknown Expr");
+	}
+
+	protected boolean isASTComplete(AST currentNode) throws SyntaxException {
+		// base false case
+		if (currentNode == null)
+			return false;
+
+		// base true case
+		// atoms are already created at full completion.
+		if (currentNode instanceof BooleanLitExpr ||
+			currentNode instanceof ConstExpr	  ||
+			currentNode instanceof IdentExpr	  ||
+			currentNode instanceof StringLitExpr  ||
+			currentNode instanceof NumLitExpr 	  ||
+			currentNode instanceof ChannelSelector)
+		return true;
+		else if (currentNode instanceof BinaryExpr ) {
+			var c = (BinaryExpr)currentNode;
+			return isASTComplete(c.getLeftExpr()) &&
+				   isASTComplete(c.getRightExpr());
+		}
+		else if (currentNode instanceof ConditionalExpr) {
+			var c = (ConditionalExpr)currentNode;
+			return isASTComplete(c.getGuardExpr()) &&
+				   isASTComplete(c.getTrueExpr())  &&
+				   isASTComplete(c.getFalseExpr());
+		}
+		else if (currentNode instanceof ExpandedPixelExpr) {
+			var c = (ExpandedPixelExpr)currentNode;
+			return isASTComplete(c.getRed()) && 
+				   isASTComplete(c.getGreen()) &&
+				   isASTComplete(c.getBlue());
+		}
+		else if (currentNode instanceof PixelSelector) {
+			var c = (PixelSelector)currentNode;
+			return isASTComplete(c.xExpr()) &&
+				   isASTComplete(c.yExpr());
+		}
+		else if (currentNode instanceof PostfixExpr) {
+			var c = (PostfixExpr)currentNode;
+			return isASTComplete(c.primary()) &&
+				   (isASTComplete(c.pixel())  ||
+					isASTComplete(c.channel()));
+
+		}
+		else if (currentNode instanceof UnaryExpr) {
+			var c = (UnaryExpr)currentNode;
+			return isASTComplete(c.getExpr());
+		}
+		throw new SyntaxException("Unhandled expression type found!");
+	}
+
+	protected AST astFromAtomStandalone(IToken token) {
+		return switch (token.kind()) {
+			case STRING_LIT -> new StringLitExpr(token);
+			case NUM_LIT -> new NumLitExpr(token);
+			case BOOLEAN_LIT -> new BooleanLitExpr(token);
+			case IDENT -> new IdentExpr(token);
+			case CONST -> new ConstExpr(token);
+			default -> null;
+		};
 	}
 
 
-	protected boolean leftGoesFirst(IToken left, IToken right) throws SyntaxException {
+	protected boolean naturalPemdazIsLeft(IToken left, IToken right) throws SyntaxException {
 		// true -> left
 		// false -> right
 		final Kind[] logical = { AND, OR }; 
@@ -265,19 +364,5 @@ public class ExpressionParser implements IParser {
 		};
 	}
 		
-
-
-	@Override
-	public AST parse() throws PLCCompilerException {
-		Expr e = expr();
-		return e;
-	}
-
-
-	private Expr expr() throws PLCCompilerException {
-		throw new UnsupportedOperationException("THE PARSER HAS NOT BEEN IMPLEMENTED YET");
-	}
-
-    
 
 }

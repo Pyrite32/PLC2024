@@ -1,0 +1,206 @@
+package edu.ufl.cise.cop4020fa23;
+
+import java.util.ArrayList;
+
+import edu.ufl.cise.cop4020fa23.ast.AST;
+import edu.ufl.cise.cop4020fa23.ast.BinaryExpr;
+import edu.ufl.cise.cop4020fa23.ast.ChannelSelector;
+import edu.ufl.cise.cop4020fa23.ast.ConditionalExpr;
+import edu.ufl.cise.cop4020fa23.ast.ConstExpr;
+import edu.ufl.cise.cop4020fa23.ast.Expr;
+import edu.ufl.cise.cop4020fa23.ast.IdentExpr;
+import edu.ufl.cise.cop4020fa23.ast.NumLitExpr;
+import edu.ufl.cise.cop4020fa23.ast.PostfixExpr;
+import edu.ufl.cise.cop4020fa23.ast.StringLitExpr;
+import edu.ufl.cise.cop4020fa23.Kind;
+import edu.ufl.cise.cop4020fa23.exceptions.SyntaxException;
+
+public class TreeBuilderComponent {
+
+    public enum PemdasLevel
+    {
+        ACCESSOR,
+        PARENTHESES,
+        MULTIPLY,
+        DIVIDE,
+        ADD,
+        SUBTRACT
+    }
+
+    AST data;
+    TreeBuilderComponent parent;
+    TreeBuilderComponent left;
+    TreeBuilderComponent right;
+    ArrayList<TreeBuilderComponent> auxilliary;
+    IToken anchor;
+    // exceptions
+    IToken thisToken;
+    PemdasLevel priority;
+
+    public TreeBuilderComponent() {
+        super();
+    }
+
+    public TreeBuilderComponent(IToken token)
+    {
+        super();
+        this.data = data;
+        if (isAtomic(token))
+        {
+            AST current = createAtomic(token);
+            ApplyAtomic(current);
+        }
+        else
+        {
+            ApplyNonAtomic(token);
+        }
+    }
+
+    private void ApplyAtomic(AST atomic) throws SyntaxException
+    {
+        if (parent == null)
+            throw new SyntaxException("Atomic symbol can't be loaded without an overarching expression");
+        var parentKind = parent.data.getClass();
+        if (parent.data instanceof BinaryExpr)
+        {
+            if (left == null)
+            {
+                left = getAtomic(anchor, thisToken);
+                left.parent = this;
+            }
+            else if (right == null)
+            {
+                right = getAtomic(anchor, thisToken);
+                right.parent = this;
+            }
+            else
+            {
+                throw new SyntaxException("Rogue symbol detected with binary expression");
+            }
+
+        }
+        if (parent.data instanceof ConditionalExpr)
+        {
+            
+        }
+    }
+
+    private boolean isAtomic(IToken token) throws SyntaxException
+    {
+        var kind = token.kind();
+        if (kind == Kind.NUM_LIT) {
+            return true;
+        }
+        if (kind == Kind.STRING_LIT) {
+            return true;
+        }
+        if (kind == Kind.CONST) {
+            return true;
+        }
+        if (kind == Kind.BOOLEAN_LIT) {
+            return true;
+        }
+        if (kind == Kind.IDENT) {
+            return true;
+        }        
+        if (kind == Kind.RES_red ||
+            kind == Kind.RES_red ||
+            kind == Kind.RES_blue) {
+            // only when the parent is a selector.
+            if (parent != null && parent.data instanceof PostfixExpr)
+                return true;
+            else throw new SyntaxException("'"+ token.text() +"' no preceding pixel found from which to select channels.");
+
+        }
+        return false;
+    }
+
+    public static TreeBuilderComponent getAtomic(IToken first, IToken token) throws SyntaxException
+    {
+        // types of atoms are : constants, 
+        AST data;
+        switch (token.kind())
+        {
+            case NUM_LIT:
+                data = new NumLitExpr(token);
+                break;
+            case IDENT:
+                data = new IdentExpr(token);
+                break;
+            case CONST:
+                data = new ConstExpr(token);
+                break;
+            case STRING_LIT:
+                data = new StringLitExpr(token);
+                break;
+            case RES_red, RES_green, RES_blue:
+                if (first != null)
+                    data = new ChannelSelector(first, token);
+                else
+                    throw new SyntaxException("channel selector " + token.text() + " detected out of grammatical context");
+                    break;
+            default:
+                throw new SyntaxException("Unregistered atom found : " + token.kind().toString());
+        }
+        // will create a new TreeBuilderComponent from an atom, whilst typically avoiding structural change
+        var result = new TreeBuilderComponent();
+        result.data = data;
+        result.thisToken = token;
+        result.anchor = first;
+        return result;
+    }
+
+    public static void ApplyNonAtomic(IToken nonAtomic)
+    {
+        // will dismount according to logic.
+    }
+
+    public IToken first()
+    {
+        if (this.left == null)
+            return this.data.firstToken();
+        else return this.left.first();
+    }
+
+    public TreeBuilderComponent dismountLeft(TreeBuilderComponent successiveParent) throws SyntaxException
+    {
+        if (this.parent == null)
+        {
+            this.parent = successiveParent;
+            successiveParent.left = this;
+            return successiveParent;
+        }
+        else
+        {
+            throw new SyntaxException("Cannot dismount on a non-root node! root : " 
+            + this.data.toString()
+            + " new parent : "
+            + successiveParent.data.toString());
+        }
+
+        // takes the current component, and adds its parent. then return the parent. 
+    }
+
+    private AST CompileComponentTree()
+    {
+        // convert left and right to the proper AST components.
+        if (data instanceof BinaryExpr) {
+            data = new BinaryExpr(first(), left.CompileComponentTree(), operator, right.CompileComponentTree());
+        }
+
+        // base case
+        // recurse
+    }
+
+    private boolean isPemdazGreaterThan(TreeBuilderComponent other)
+    {
+        return this.priority.ordinal() >= other.priority.ordinal();
+    }
+
+    public void convertToASTs()
+    {
+
+    }
+
+    
+}
