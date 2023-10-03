@@ -37,17 +37,22 @@ public class UnicornAST {
 
     AST dataHead;
 
-    public void incrementSequentialCount() throws SyntaxException
+    public boolean incrementSequentialCount() throws SyntaxException
     {
         sequentialCount += 1;
         if (dataHead instanceof PixelSelector && sequentialCount == 2) {
-
+            return true;
         }
+        if (dataHead instanceof ExpandedPixelExpr) {
+            throw new SyntaxException("Expanded Pixel Exprs don't take 4 arguments.");
+        }
+
+        return false;
     }
 
     // only really needed with ExpandedPixelSel
-    public void replaceMe(UnicornAST with) {
-        if (parent == null) return;
+    public boolean tryReplaceMe(UnicornAST with) {
+        if (parent == null) return false;
         if (parent.left == this) {
             parent.left = with;
             with.left = left;
@@ -55,6 +60,7 @@ public class UnicornAST {
             with.right = right;
             with.sequentialCount = sequentialCount;
             with.first = first;
+            with.parent = parent;
         }
         else if (parent.middle == this) {
             parent.middle = with;
@@ -63,6 +69,7 @@ public class UnicornAST {
             with.right = right;
             with.sequentialCount = sequentialCount;
             with.first = first;
+            with.parent = parent;
         }
         else if (parent.right == this) {
             parent.right = with;
@@ -71,13 +78,21 @@ public class UnicornAST {
             with.right = right;
             with.sequentialCount = sequentialCount;
             with.first = first;
+            with.parent = parent;
         }
+        return true;
     }
 
     public void mutinizeMe(UnicornAST with) {
-        if (parent == null) return;
+        if (parent == null) {
+            parent = with;
+            return;
+        }
         if (parent.left == this) {
-
+            var tempParent = parent;
+            parent = with;
+            with.left = this;
+            with.parent = tempParent;
         }
         else if (parent.middle == this) {
 
@@ -98,7 +113,16 @@ public class UnicornAST {
     }
 
     public boolean isSyntaxResolved() {
-
+        if (parent == null) return true;
+        if (parent.dataHead instanceof PixelSelector ||
+            parent.dataHead instanceof ExpandedPixelExpr ||
+            parent.dataHead instanceof ConditionalExpr )
+        {
+            if (parent.left == this) return sequentialCount > 0;
+            if (parent.middle == this) return sequentialCount > 1;
+            if (parent.right == this) return sequentialCount > 2;
+        }
+        return true;
     }
 
     public static AST buildAST(UnicornAST root) {
@@ -218,7 +242,7 @@ public class UnicornAST {
         root.dataHead instanceof NumLitExpr 	  ||
         root.dataHead instanceof ChannelSelector)
         {
-            return new ExpressionParserContext(root.parent, num, root.parent.syntaxResolved);
+            return new ExpressionParserContext(root.parent, num, root.parent.isSyntaxResolved());
         }
 
         if (root.isConditionalExpr() || root.isExpandedPixelExpr()) {
