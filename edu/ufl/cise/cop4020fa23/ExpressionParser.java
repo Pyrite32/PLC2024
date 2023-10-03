@@ -170,12 +170,12 @@ public class ExpressionParser implements IParser {
 		if (astContext.parent() == null) parentToModify = root;
 
 		// if the tree is currently complete, or if a sequential syntax is left unresolved.
-		if (astContext.isComplete() || (!astContext.isComplete() && !astContext.parent().getChildByIndex(astContext.childIndex()).isSyntaxResolved())) {
+		if (astContext.isComplete()) {
 			UnicornAST newAST = UnicornAST.fromAtomStandalone(current);
 
 			// if this is an atomic...
 			if (newAST != null) {
-				throw new SyntaxException("Unexpected atom: current statement should be complete!");
+				throw new SyntaxException("Unexpected atom: " + current.text() + " --- current statement should be complete!");
 			}
 			// handle statement shift characters.
 			else if (current.kind() == Kind.PLUS  || 
@@ -185,11 +185,13 @@ public class ExpressionParser implements IParser {
 				current.kind() == Kind.MOD)
 				{
 					AST mutiner = new BinaryExpr(current, null, current, null);
-					UnicornAST uni = new UnicornAST(mutiner);
-					if (parentToModify == root)
+					UnicornAST uni = new UnicornAST(mutiner, current);
 					parentToModify = parentToModify.mutinizeMe(uni);
-					else
-					parentToModify.mutinizeMe(uni);
+					if (parentToModify.parent == null)
+					root = parentToModify; 
+
+					System.out.println("ClassName r : " + root.dataHead.getClass().getSimpleName());
+					System.out.println("ClassName p : " + parentToModify.dataHead.getClass().getSimpleName());
 
 				}
 			else if (current.kind() == Kind.RPAREN) {
@@ -209,6 +211,7 @@ public class ExpressionParser implements IParser {
 				current.kind() == Kind.MINUS ||
 				current.kind() == Kind.RES_width ||
 				current.kind() == Kind.RES_height) {
+					System.out.println("unary expr");
 					AST mutiner = new UnaryExpr(current, current, null);
 					UnicornAST uni = new UnicornAST(mutiner);
 					if (parentToModify == root)

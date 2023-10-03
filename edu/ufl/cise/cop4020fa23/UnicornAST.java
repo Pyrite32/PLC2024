@@ -55,20 +55,24 @@ public class UnicornAST {
         if (index == 0) {
             left = with;
             left.parent = this;
+            return with;
         }
         if (index == 1) {
             if (isBinaryExpr() || isPixelSelector() || isPostfixSelector()) {
                 right = with;
                 right.parent = this;
+                return with;
             } 
             else {
                 middle = with;
                 middle.parent = this;
+                return with;
             }
         }
         if (index == 2) {
             right = with;
             right.parent = this;
+            return with;
         }
         throw new SyntaxException("Out of range getChildByIndex() : " + index);
     }
@@ -150,7 +154,17 @@ public class UnicornAST {
         super();
         dataHead = simple;
         first = simple.firstToken;
+
     }
+
+    public UnicornAST(AST simple, IToken operator) {
+        super();
+        dataHead = simple;
+        first = simple.firstToken;
+        this.operator = operator;
+        
+    }
+
 
     public boolean isSyntaxResolved() {
         if (parent == null)
@@ -271,19 +285,19 @@ public class UnicornAST {
     }
 
     public static UnicornAST fromNewUnaryExpr(IToken first) {
-        return new UnicornAST(new UnaryExpr(first, first, null));
+        return new UnicornAST(new UnaryExpr(first, first, null), first);
     }
 
     public static ExpressionParserContext getFirstUnfinishedAST(UnicornAST root) throws SyntaxException {
-        return _getFirstUnfinishedAST(root, null, 0, null);
+        System.out.println("ClassName ufa : " + root.dataHead.getClass().getSimpleName());
+        return _getFirstUnfinishedAST(root, null, 0);
     }
 
-    private static ExpressionParserContext _getFirstUnfinishedAST(UnicornAST root, UnicornAST parent, int num,
-            ExpressionParserContext res) throws SyntaxException {
-        if (res != null)
-            return res;
+    private static ExpressionParserContext _getFirstUnfinishedAST(UnicornAST root, UnicornAST parent, int num) throws SyntaxException {
+        ExpressionParserContext res = null;
         if (root == null) {
             if (parent != null) {
+                System.out.println("Root is null but parent is not.");
                 return new ExpressionParserContext(parent, num, false);
             } else {
                 throw new SyntaxException("root cannot be null when calling getFirstUnfinishedAST()");
@@ -295,36 +309,45 @@ public class UnicornAST {
                 root.dataHead instanceof StringLitExpr ||
                 root.dataHead instanceof NumLitExpr ||
                 root.dataHead instanceof ChannelSelector) {
-            return new ExpressionParserContext(root.parent, num, root.parent.isSyntaxResolved());
+            boolean isr = true;
+            if (root.parent != null) {
+                isr = root.parent.isSyntaxResolved();
+            }
+            if (!isr)
+            return new ExpressionParserContext(root.parent, num, isr);
         }
 
         if (root.isConditionalExpr() || root.isExpandedPixelExpr()) {
-            res = _getFirstUnfinishedAST(root.left, root, num, res);
+            res = _getFirstUnfinishedAST(root.left, root, num);
             if (!res.isComplete())
                 return res;
-            res = _getFirstUnfinishedAST(root.middle, root, num, res);
+            res = _getFirstUnfinishedAST(root.middle, root, num);
             if (!res.isComplete())
                 return res;
-            res = _getFirstUnfinishedAST(root.right, root, num, res);
+            res = _getFirstUnfinishedAST(root.right, root, num);
             if (!res.isComplete())
                 return res;
         }
         if (root.isBinaryExpr() || root.isPixelSelector() || root.isPostfixSelector()) {
-            res = _getFirstUnfinishedAST(root.left, root, num, res);
+            System.out.println("this is binare");
+            res = _getFirstUnfinishedAST(root.left, root, num);
             if (!res.isComplete())
                 return res;
-            res = _getFirstUnfinishedAST(root.right, root, num, res);
+            res = _getFirstUnfinishedAST(root.right, root, num);
             if (!res.isComplete())
                 return res;
         }
         if (root.isUnaryExpr()) {
-            res = _getFirstUnfinishedAST(root.left, root, num, res);
+            res = _getFirstUnfinishedAST(root.left, root, num);
             if (!res.isComplete())
                 return res;
         }
-
-        return new ExpressionParserContext(parent, num, true);
-
+        if (res == null) {
+            System.out.println("failure here! returning true");
+            return new ExpressionParserContext(parent, num, true);
+        }
+        else
+            return res;
     }
 
 }

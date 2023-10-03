@@ -485,8 +485,10 @@ class ExpressionParserTest_starter {
 		AST ast = getAST(input);
 		checkBinaryExpr(ast, Kind.PLUS);
 		Expr v0 = ((BinaryExpr) ast).getLeftExpr();
-		checkIdentExpr(v0, "f");
 		Expr v1 = ((BinaryExpr) ast).getRightExpr();
+		System.out.println(v0.toString());
+		System.out.println(v1.toString());
+		checkIdentExpr(v0, "f");
 		checkIdentExpr(v1, "g");
 	}
 
