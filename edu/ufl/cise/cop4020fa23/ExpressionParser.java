@@ -167,9 +167,10 @@ public class ExpressionParser implements IParser {
 
 		ExpressionParserContext astContext = UnicornAST.getFirstUnfinishedAST(root);
 		UnicornAST parentToModify = astContext.parent();
+		if (astContext.parent() == null) parentToModify = root;
 
-		// only atoms and statements awaiting statement shifts are complete.
-		if (astContext.isComplete()) {
+		// if the tree is currently complete, or if a sequential syntax is left unresolved.
+		if (astContext.isComplete() || (!astContext.isComplete() && !astContext.parent().getChildByIndex(astContext.childIndex()).isSyntaxResolved())) {
 			UnicornAST newAST = UnicornAST.fromAtomStandalone(current);
 
 			// if this is an atomic...
@@ -177,6 +178,54 @@ public class ExpressionParser implements IParser {
 				throw new SyntaxException("Unexpected atom: current statement should be complete!");
 			}
 			// handle statement shift characters.
+			else if (current.kind() == Kind.PLUS  || 
+				current.kind() == Kind.MINUS || 
+				current.kind() == Kind.TIMES || 
+				current.kind() == Kind.DIV   ||
+				current.kind() == Kind.MOD)
+				{
+					AST mutiner = new BinaryExpr(current, null, current, null);
+					UnicornAST uni = new UnicornAST(mutiner);
+					if (parentToModify == root)
+					parentToModify = parentToModify.mutinizeMe(uni);
+					else
+					parentToModify.mutinizeMe(uni);
+
+				}
+			else if (current.kind() == Kind.RPAREN) {
+				AST mutiner = new PostfixExpr(current, null, null, null);
+				AST mutinerL = new PixelSelector(current, null, null);
+				UnicornAST uni = new UnicornAST(mutiner);
+				UnicornAST uniL = new UnicornAST(mutinerL);
+				uni.usePixelSelector = true;
+				uni.left = uniL;
+				if (parentToModify == root)
+					parentToModify = parentToModify.mutinizeMe(uni);
+				else
+					parentToModify.mutinizeMe(uni);
+				
+			}
+			else if (current.kind() == Kind.BANG ||
+				current.kind() == Kind.MINUS ||
+				current.kind() == Kind.RES_width ||
+				current.kind() == Kind.RES_height) {
+					AST mutiner = new UnaryExpr(current, current, null);
+					UnicornAST uni = new UnicornAST(mutiner);
+					if (parentToModify == root)
+						parentToModify = parentToModify.mutinizeMe(uni);
+					else
+						parentToModify.mutinizeMe(uni);
+				
+			}
+			else if (current.kind() == Kind.BITAND ||
+				current.kind() == Kind.AND ||
+				current.kind() == Kind.OR ||
+				current.kind() == Kind.BITOR)
+			{
+
+			}
+			
+
 		}
 		else {
 			// // an unfinished AST needs to be filled with atoms or other statements.
@@ -184,315 +233,52 @@ public class ExpressionParser implements IParser {
 
 			// AST shifting token?
 			if (newAst == null) {
-				if (parentToModify.dataHead instanceof PixelSelector)
+				if (parentToModify.dataHead instanceof PixelSelector || parentToModify.dataHead instanceof ExpandedPixelExpr)
 				{
-					
+					if (current.kind() == Kind.COMMA)
+						parentToModify.incrementSequentialCount();
+					else if (current.kind() == Kind.RSQUARE) // RSQUARE signifies the end of the syntax
+						parentToModify.forceComplete = true;
+					else
+						throw new SyntaxException("Incorrect grammar encountered when examining PixelSelector : " + current.text());
 				}
-				
-				
-
-				throw new SyntaxException("Unexpected AST shifting token: " + current.text());
-			} 
-
-			if (newAst.parent == null) {
-				// just reassign the root.
+				else if (parentToModify.dataHead instanceof ConditionalExpr)
+				{
+					if (current.kind() == Kind.RARROW) {
+						if (parentToModify.getSequentialCount() == 0) {
+							parentToModify.incrementSequentialCount();
+						}
+						else {
+							throw new SyntaxException("Incorrect grammar encountered in conditional!");
+						}
+					}
+					else if (current.kind() == Kind.COMMA) {
+						if (parentToModify.getSequentialCount() == 1) {
+							parentToModify.incrementSequentialCount();
+							parentToModify.forceComplete = true; // there are no more commas afterwards.
+						}
+					}
+				}
+				else {
+					throw new SyntaxException("Expected atoms to fill incomplete grammar, but got a logic shifter instead: " + current.text());
+				}
+				return;
 			}
-			else {
-				// replace the 
+			else
+			{
+				parentToModify.setChildByIndex(astContext.childIndex(), newAst);
 			}
-			
-			// AST newAST = astFromAtomStandalone(current);
-			// // if atom
-			// if (newAST == null && !isPunctuation(current)) {
-			// 	throw new SyntaxException("Statement symbol not appropriate in incomplete statement.");
-			// }
-			// ExpressionParserParentData data = getParentOf(currentContextRoot);
-			// if (data == null) {
-			// 	throw new SyntaxException("Failure to find child!");
-			// }
-			// boolean use = false;
-			// if (usePixelSelector) {
-			// 	use = true;
-			// 	usePixelSelector = false;
-			// }
-			// // project the solution to appending an atom 
-			// AST updated = getAppendAtomResult(data.parent(), newAST, use);
-			// // replace the immutable data with the new version.
-			// setParentMember(data.parent(), data.childIndex(), updated);
 
-			
 
 		}
 		// modify the current context and child expr.
 	}
-
-	// protected void setParentMember(AST parent, int childNum, AST replacement) {
-	// 	if (parent == null) {
-	// 		throw SyntaxException("Error! Cannot call setParentMember() on a null parent!");
-	// 	}
-	// }
-
-	// protected AST getAppendAtomResult(AST parent, AST what, boolean usePixelSelector) throws SyntaxException {
-
-	// 	if (!(what instanceof Expr) ) {
-	// 		throw new SyntaxException("cannot call appendAtom() with a non-expression atom.");
-	// 	}
-	// 	Expr atom = (Expr) what;
-	// 	if (parent == null) {
-	// 		throw new SyntaxException("Cannot append atom to a null parent.");
-	// 	}
-	// 	else if (parent instanceof BooleanLitExpr ||
-	// 		parent instanceof ConstExpr	  ||
-	// 		parent instanceof IdentExpr	  ||
-	// 		parent instanceof StringLitExpr  ||
-	// 		parent instanceof NumLitExpr 	  ||
-	// 		parent instanceof ChannelSelector)
-	// 		throw new SyntaxException("cannot append atom to another atom");
-	// 	else if (parent instanceof BinaryExpr) {
-	// 		var c = (BinaryExpr)parent;
-	// 		if (c.getRightExpr() == null) return new BinaryExpr(c.firstToken(), c.getLeftExpr(), c.getOp(), atom);
-	// 	}
-	// 	else if (parent instanceof ConditionalExpr) {
-	// 		var c = (ConditionalExpr)parent;
-	// 		if (c.getGuardExpr() == null) return new ConditionalExpr(c.firstToken(), atom, null, null);
-	// 		if (c.getFalseExpr() == null) return new ConditionalExpr(c.firstToken(), c.getGuardExpr(), atom, null);
-	// 		if (c.getTrueExpr() == null) return new ConditionalExpr(c.firstToken(), c.getGuardExpr(), c.getTrueExpr(), atom);
-	// 	}
-	// 	else if (parent instanceof ExpandedPixelExpr) {
-	// 		var c = (ExpandedPixelExpr)parent;
-	// 		if (c.getRed() == null) return new ExpandedPixelExpr(c.firstToken(), atom, null, null);
-	// 		if (c.getGreen() == null) return new ExpandedPixelExpr(c.firstToken(), c.getRed(), atom, null);
-	// 		if (c.getBlue() == null) return new ExpandedPixelExpr(c.firstToken(), c.getRed(), c.getGreen(), atom);
-	// 	}
-	// 	else if (parent instanceof PixelSelector) {
-	// 		var c = (PixelSelector)parent;
-	// 		if (c.xExpr() == null) return new PixelSelector(c.firstToken(), atom, null);
-	// 		if (c.yExpr() == null) return new PixelSelector(c.firstToken(), c.xExpr(), atom);
-	// 	}
-	// 	else if (parent instanceof PostfixExpr) {
-	// 		var c = (PostfixExpr)parent;
-	// 		if (c.primary() == null) return new PostfixExpr(c.firstToken(), atom, null, null);
-	// 		if (c.channel() == null && !usePixelSelector) {
-	// 			if (what instanceof ChannelSelector)
-	// 			return new PostfixExpr(c.firstToken(), c.primary(), null, (ChannelSelector)what);
-	// 			else throw new SyntaxException("The atom " + what.getClass().toString() + " is not a ChannelSelector");
-	// 		}
-	// 		if (c.pixel() == null) {
-	// 			return new PostfixExpr(c.firstToken(), c.primary(), new PixelSelector(c.firstToken(), atom, null), null);
-	// 		}	
-
-	// 	}
-	// 	else if (parent instanceof UnaryExpr) {
-	// 		throw new SyntaxException("Cannot append an atom to a UnaryExpr; It should already be complete.");
-	// 	}
-	// 	throw new SyntaxException("Unsupported parent type : " + what.getClass().toString());
-	// }
-
-	// protected ExpressionParserParentData getParentOf(AST child ) throws SyntaxException{
-	// 	return _getParentRec(root, child, null);
-	// }
-	
-	// protected ExpressionParserParentData _getParentRec(AST currentNode, AST child, ExpressionParserParentData currentResult) throws SyntaxException {
-	// 	if (child == root) {
-	// 		return new ExpressionParserParentData(null, 0);
-	// 	}
-	// 	if (currentResult != null) return currentResult;
-	// 	ExpressionParserParentData result = null;
-	// 	if (currentNode == null) {
-	// 		return null;
-	// 	}
-	// 	if (currentNode instanceof BooleanLitExpr ||
-	// 		currentNode instanceof ConstExpr	  ||
-	// 		currentNode instanceof IdentExpr	  ||
-	// 		currentNode instanceof StringLitExpr  ||
-	// 		currentNode instanceof NumLitExpr 	  ||
-	// 		currentNode instanceof ChannelSelector)
-	// 		return null;
-	// 	else if (currentNode instanceof BinaryExpr) {
-	// 		var c = (BinaryExpr)currentNode;
-	// 		if (child == c.getLeftExpr()) return new ExpressionParserParentData(currentNode, 0); 
-	// 		else result = _getParentRec(c.getLeftExpr(), child, result); 
-	// 		if (child == c.getRightExpr()) return new ExpressionParserParentData(currentNode, 1); 
-	// 		else result = _getParentRec(c.getRightExpr(), child, result); 
-	// 	}
-	// 	else if (currentNode instanceof ConditionalExpr) {
-	// 		var c = (ConditionalExpr)currentNode;
-	// 		if (child == c.getGuardExpr()) return new ExpressionParserParentData(currentNode, 0); 
-	// 		else result = _getParentRec(c.getGuardExpr(), child, result); 
-	// 		if (child == c.getFalseExpr()) return new ExpressionParserParentData(currentNode, 1); 
-	// 		else result = _getParentRec(c.getFalseExpr(), child, result); 
-	// 		if (child == c.getTrueExpr())  return new ExpressionParserParentData(currentNode, 2);
-	// 		else result = _getParentRec(c.getTrueExpr(), child, result); 
-	// 	}
-	// 	else if (currentNode instanceof ExpandedPixelExpr) {
-	// 		var c = (ExpandedPixelExpr)currentNode;
-	// 		if (child == c.getRed()) return new ExpressionParserParentData(currentNode, 0);
-	// 		else result = _getParentRec(c.getRed(), child, result); 
-	// 		if (child == c.getGreen()) return new ExpressionParserParentData(currentNode, 1);
-	// 		else result = _getParentRec(c.getGreen(), child, result); 
-	// 		if (child == c.getBlue()) return new ExpressionParserParentData(currentNode, 2);
-	// 		else result = _getParentRec(c.getBlue(), child, result); 
-	// 	}
-	// 	else if (currentNode instanceof PixelSelector) {
-	// 		var c = (PixelSelector)currentNode;
-	// 		if (child == c.xExpr()) new ExpressionParserParentData(currentNode, 0);
-	// 		else result = _getParentRec(c.xExpr(), child, result); 
-	// 		if (child == c.yExpr()) new ExpressionParserParentData(currentNode, 1);
-	// 		else result = _getParentRec(c.yExpr(), child, result); 
-	// 	}
-	// 	else if (currentNode instanceof PostfixExpr) {
-	// 		var c = (PostfixExpr)currentNode;
-	// 		if (child == c.primary()) return new ExpressionParserParentData(currentNode, 0);
-	// 		else result = _getParentRec(c.primary(), child, result); 
-	// 		if (child == c.pixel()) return new ExpressionParserParentData(currentNode, 1);
-	// 		else result = _getParentRec(c.pixel(), child, result); 
-	// 		if (child == c.channel()) return new ExpressionParserParentData(currentNode, 2);
-	// 		else result = _getParentRec(c.channel(), child, result); 
-
-	// 	}
-	// 	else if (currentNode instanceof UnaryExpr) {
-	// 		var c = (UnaryExpr)currentNode;
-	// 		if (child == c.getExpr()) return new ExpressionParserParentData(currentNode, 0);
-	// 		else result = _getParentRec(c.getExpr(), child, result); 
-	// 	}
-	// 	return result;
-	// }
 
 	protected boolean isPunctuation(IToken token) {
 		return token.kind() == LPAREN || 
 			   token.kind() == Kind.RPAREN ||
 			   token.kind() == COMMA;
 	}
-
-	// // scan the tree and determine if there are any null parts to the tree.
-	// // the null parts are considered incomplete and need to be replaced.
-	// protected ExpressionParserContext getContext() throws PLCCompilerException {
-	// 	// set currentRoot
-	// 	// set currentRootChildNum
-	// 	return _getContextRec(root, null, 0);
-	// }
-	// private ExpressionParserContext _getContextRec(AST currentNode, AST parent, int num) throws PLCCompilerException {
-		
-	// 	// base successful case
-	// 	if (currentNode == null) {
-	// 		if (parent != null) {
-	// 			return new ExpressionParserContext(parent, num, false);
-	// 		}
-	// 		throw new SyntaxException("cannot getContext() on an empty node");
-	// 	}
-	// 	if (currentNode instanceof BooleanLitExpr ||
-	// 		currentNode instanceof ConstExpr	  ||
-	// 		currentNode instanceof IdentExpr	  ||
-	// 		currentNode instanceof StringLitExpr  ||
-	// 		currentNode instanceof NumLitExpr 	  ||
-	// 		currentNode instanceof ChannelSelector)
-	// 		return new ExpressionParserContext(parent, num, true);
-	// 	// immediately return the first ExpressionParserContext with a isFinished: false.
-	// 	else if (currentNode instanceof BinaryExpr) {
-	// 		var c = (BinaryExpr)currentNode;
-	// 		ExpressionParserContext e;
-	// 		e = _getContextRec(c.getLeftExpr(), currentNode, 0);
-	// 		if (!e.isComplete()) return e;
-	// 		e = _getContextRec(c.getRightExpr(), currentNode, 1);
-	// 		if (!e.isComplete()) return e;
-	// 	}
-	// 	else if (currentNode instanceof ConditionalExpr) {
-	// 		var c = (ConditionalExpr)currentNode;
-	// 		ExpressionParserContext e;
-	// 		e = _getContextRec(c.getGuardExpr(), currentNode, 0);
-	// 		if (!e.isComplete()) return e;
-	// 		e = _getContextRec(c.getTrueExpr(), currentNode, 1);
-	// 		if (!e.isComplete()) return e;
-	// 		e = _getContextRec(c.getFalseExpr(), currentNode, 2);
-	// 		if (!e.isComplete()) return e;
-	// 	}
-	// 	else if (currentNode instanceof ExpandedPixelExpr) {
-	// 		var c = (ExpandedPixelExpr)currentNode;
-	// 		ExpressionParserContext e;
-	// 		e = _getContextRec(c.getRed(), currentNode, 0);
-	// 		if (!e.isComplete()) return e;
-	// 		e = _getContextRec(c.getGreen(), currentNode, 1);
-	// 		if (!e.isComplete()) return e;
-	// 		e = _getContextRec(c.getBlue(), currentNode, 2);
-	// 		if (!e.isComplete()) return e;
-	// 	}
-	// 	else if (currentNode instanceof PixelSelector) {
-	// 		var c = (PixelSelector)currentNode;
-	// 		ExpressionParserContext e;
-	// 		e = _getContextRec(c.xExpr(), currentNode, 0);
-	// 		if (!e.isComplete()) return e;
-	// 		e = _getContextRec(c.yExpr(), currentNode, 1);
-	// 		if (!e.isComplete()) return e;
-	// 	}
-	// 	else if (currentNode instanceof PostfixExpr) {
-	// 		var c = (PostfixExpr)currentNode;
-	// 		ExpressionParserContext e;
-	// 		ExpressionParserContext e2;
-	// 		e = _getContextRec(c.primary(), currentNode, 0);
-	// 		if (!e.isComplete()) return e;
-	// 		e = _getContextRec(c.pixel(), currentNode, 1);
-	// 		e2 = _getContextRec(c.channel(), currentNode, 2);
-	// 		if (!e.isComplete() && !e2.isComplete()) return e;
-
-	// 	}
-	// 	else if (currentNode instanceof UnaryExpr) {
-	// 		var c = (UnaryExpr)currentNode;
-	// 		ExpressionParserContext e;
-	// 		e = _getContextRec(c.getExpr(), currentNode, 0);
-	// 		if (!e.isComplete()) return e;
-	// 	}
-	// 	return new ExpressionParserContext(parent, num, true);
-	// }
-
-	// protected boolean isASTComplete(AST currentNode) throws SyntaxException {
-	// 	// base false case
-	// 	if (currentNode == null)
-	// 		return false;
-
-	// 	// base true case
-	// 	// atoms are already created at full completion.
-	// 	if (currentNode instanceof BooleanLitExpr ||
-	// 		currentNode instanceof ConstExpr	  ||
-	// 		currentNode instanceof IdentExpr	  ||
-	// 		currentNode instanceof StringLitExpr  ||
-	// 		currentNode instanceof NumLitExpr 	  ||
-	// 		currentNode instanceof ChannelSelector)
-	// 	return true;
-	// 	else if (currentNode instanceof BinaryExpr ) {
-	// 		var c = (BinaryExpr)currentNode;
-	// 		return isASTComplete(c.getLeftExpr()) &&
-	// 			   isASTComplete(c.getRightExpr());
-	// 	}
-	// 	else if (currentNode instanceof ConditionalExpr) {
-	// 		var c = (ConditionalExpr)currentNode;
-	// 		return isASTComplete(c.getGuardExpr()) &&
-	// 			   isASTComplete(c.getTrueExpr())  &&
-	// 			   isASTComplete(c.getFalseExpr());
-	// 	}
-	// 	else if (currentNode instanceof ExpandedPixelExpr) {
-	// 		var c = (ExpandedPixelExpr)currentNode;
-	// 		return isASTComplete(c.getRed()) && 
-	// 			   isASTComplete(c.getGreen()) &&
-	// 			   isASTComplete(c.getBlue());
-	// 	}
-	// 	else if (currentNode instanceof PixelSelector) {
-	// 		var c = (PixelSelector)currentNode;
-	// 		return isASTComplete(c.xExpr()) &&
-	// 			   isASTComplete(c.yExpr());
-	// 	}
-	// 	else if (currentNode instanceof PostfixExpr) {
-	// 		var c = (PostfixExpr)currentNode;
-	// 		return isASTComplete(c.primary()) &&
-	// 			   (isASTComplete(c.pixel())  ||
-	// 				isASTComplete(c.channel()));
-
-	// 	}
-	// 	else if (currentNode instanceof UnaryExpr) {
-	// 		var c = (UnaryExpr)currentNode;
-	// 		return isASTComplete(c.getExpr());
-	// 	}
-	// 	throw new SyntaxException("Unhandled expression type found!");
-	// }
 
 	protected boolean naturalPemdazIsLeft(IToken left, IToken right) throws SyntaxException {
 		// true -> left
