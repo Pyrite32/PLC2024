@@ -19,7 +19,7 @@ public class Token implements IToken {
 	final Kind kind;
 	final int pos;
 	final int length;
-	final String source;
+	final char[] source;
 	final SourceLocation location;
 
 	/**
@@ -29,12 +29,26 @@ public class Token implements IToken {
 	 * @param source
 	 * @param location
 	 */
-	public Token(Kind kind, int pos, int length, String source, SourceLocation location) {
+	public Token(Kind kind, int pos, int length, char[] source, SourceLocation location) {
 		super();
 		this.kind = kind;
 		this.pos = pos;
 		this.length = length;
 		this.source = source;
+		this.location = location;
+	}
+
+	public Token(Kind kind, int pos, int length, String source, SourceLocation location) {
+		super();
+		this.kind = kind;
+		this.pos = pos;
+		this.length = length;
+		this.source = new char[source.length()];
+		for (int i = 0; i < this.source.length; i++)
+		{
+			this.source[i] = source.charAt(i);
+		}
+
 		this.location = location;
 	}
 
@@ -50,7 +64,17 @@ public class Token implements IToken {
 
 	@Override
 	public String text() {
-		return source;
+		if(length > 0) {
+			// TODO: fix text
+			//return String.copyValueOf(source, pos, length);
+			String res = "";
+			for (int i = 0; i < source.length; i++)
+			{
+				res += source[i];
+			}
+			return res;
+		}
+		return "";
 	}
 
 

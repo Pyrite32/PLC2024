@@ -218,7 +218,7 @@ public class Lexer implements ILexer {
 		}
 
 		if (currentLexibleIndex >= lexibles.size()) {
-			return new Token(EOF, 0, 0, null, new SourceLocation(1, 1));
+			return new Token(EOF, 0, 0, "", new SourceLocation(1, 1));
 		}
 
 		Token result = null;
