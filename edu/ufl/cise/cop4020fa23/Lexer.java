@@ -211,7 +211,7 @@ public class Lexer implements ILexer {
 				////tell("lexical error from OtherChar:" + res.source.toString());
 				throw new LexicalException(
 						res.sourceLocation(),
-						"Some OtherChar Lexical Error with :"
+						"Throwing a SpecialCharQueue error with Some OtherChar Lexical Error with :"
 								+ res.source.toString());
 			}
 			return res;

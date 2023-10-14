@@ -46,6 +46,8 @@ import static edu.ufl.cise.cop4020fa23.Kind.CONST;
 
 import java.util.Arrays;
 
+import javax.sound.midi.MidiChannel;
+
 import edu.ufl.cise.cop4020fa23.ast.AST;
 import edu.ufl.cise.cop4020fa23.ast.BinaryExpr;
 import edu.ufl.cise.cop4020fa23.ast.BooleanLitExpr;
@@ -63,35 +65,17 @@ import edu.ufl.cise.cop4020fa23.ast.UnaryExpr;
 import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
 import edu.ufl.cise.cop4020fa23.exceptions.PLCCompilerException;
 import edu.ufl.cise.cop4020fa23.exceptions.SyntaxException;
-/**
-Expr::=  ConditionalExpr | LogicalOrExpr    
-ConditionalExpr ::=  ?  Expr  :  Expr  :  Expr 
-LogicalOrExpr ::= LogicalAndExpr (    (   |   |   ||   ) LogicalAndExpr)*
-LogicalAndExpr ::=  ComparisonExpr ( (   &   |  &&   )  ComparisonExpr)*
-ComparisonExpr ::= PowExpr ( (< | > | == | <= | >=) PowExpr)*
-PowExpr ::= AdditiveExpr ** PowExpr |   AdditiveExpr
-AdditiveExpr ::= MultiplicativeExpr ( ( + | -  ) MultiplicativeExpr )*
-MultiplicativeExpr ::= UnaryExpr (( * |  /  |  % ) UnaryExpr)*
-UnaryExpr ::=  ( ! | - | length | width) UnaryExpr  |  UnaryExprPostfix
-UnaryExprPostfix::= PrimaryExpr (PixelSelector | ε ) (ChannelSelector | ε )
-PrimaryExpr ::=STRING_LIT | NUM_LIT |  IDENT | ( Expr ) | Z 
-    ExpandedPixel  
-ChannelSelector ::= : red | : green | : blue
-PixelSelector  ::= [ Expr , Expr ]
-ExpandedPixel ::= [ Expr , Expr , Expr ]
-Dimension  ::=  [ Expr , Expr ]                         
-
- */
 
 public class ExpressionParser implements IParser {
-	
+
 	final ILexer lexer;
+	boolean sniffed = false;
 	private IToken t;
-	
+	private IToken n;
 
 	/**
 	 * @param lexer
-	 * @throws LexicalException 
+	 * @throws LexicalException
 	 */
 	public ExpressionParser(ILexer lexer) throws LexicalException {
 		super();
@@ -99,31 +83,269 @@ public class ExpressionParser implements IParser {
 		t = lexer.next();
 	}
 
-
 	@Override
 	public AST parse() throws PLCCompilerException {
 		if (t.kind() == EOF)
 			throw new SyntaxException("all is nothing");
-		AST e = expr();
-		return e;
+		n = lexer.next();
+		if (n == null) {
+			throw new SyntaxException("invalid!");
+		}
+		return expr();
 	}
 
-
-	private AST expr() throws PLCCompilerException {
-		IToken firstToken = t;
-		// atomics
-		if (on(NUM_LIT)) return new NumLitExpr(t);
-		if (on(STRING_LIT)) return new StringLitExpr(t);
-		if (on(NUM_LIT)) return new NumLitExpr(t);
-		if (on(Kind.BOOLEAN_LIT)) return new BooleanLitExpr(t);
-		if (on(CONST)) return new ConstExpr(t);
-
-		throw new SyntaxException("what do I do here?");
-	}
-
-    private boolean on(Kind k)
+	// * ConditionalExpr ::= ? Expr : Expr : Expr
+	private Expr condie() throws PLCCompilerException // base-level chain. End exactly here
 	{
-		return t.kind() == k;
+		var first = t;
+		Expr condie = null;
+		eat();
+		Expr condition = expr();
+		require(RARROW);
+		Expr whenTrue = expr();
+		require(COMMA);
+		Expr whenFalse = expr();
+		return new ConditionalExpr(first, condition, whenTrue, whenFalse);
 	}
 
+	// * LogicalOrExpr ::= LogicalAndExpr ( ( | | || ) LogicalAndExpr)*
+	private Expr logor() throws PLCCompilerException {
+		// musthave logand
+		var first = t;
+		Expr left = logand();
+		Expr right = null;
+		while (on(BITOR, OR)) {
+			var operand = eat();
+			right = logand();
+			left = new BinaryExpr(first, left, operand, right);
+		}
+		return left;
+	}
+
+	// * LogicalAndExpr ::= ComparisonExpr ( ( & | && ) ComparisonExpr)*
+	private Expr logand() throws PLCCompilerException {
+		var first = t;
+		Expr left = compar();
+		Expr right = null;
+		while (on(BITAND, AND)) {
+			var operand = eat();
+			right = compar();
+			left = new BinaryExpr(first, left, operand, right);
+		}
+		return left;
+	}
+
+	// * ComparisonExpr ::= PowExpr ( (< | > | == | <= | >=) PowExpr)*
+	private Expr compar() throws PLCCompilerException {
+		var first = t;
+		Expr left = pow();
+		Expr right = null;
+		while (on(LT, GT, EQ, LE, GE)) {
+			var operand = eat();
+			right = pow();
+			left = new BinaryExpr(first, left, operand, right);
+		}
+		return left;
+	}
+
+	// * PowExpr ::= AdditiveExpr ** PowExpr | AdditiveExpr
+	private Expr pow() throws PLCCompilerException {
+		var first = t;
+		Expr left = add();
+		if (on(EXP)) {
+			var power = eat();
+			Expr right = pow();
+			left = new BinaryExpr(first, left, power, right);
+		}
+		return left;
+	}
+
+	// * AdditiveExpr ::= MultiplicativeExpr ( ( + | - ) MultiplicativeExpr )*
+	private Expr add() throws PLCCompilerException {
+		var first = t;
+		Expr left = mul();
+		if (on(MINUS, PLUS)) {
+			var operand = eat();
+			Expr right = mul();
+			left = new BinaryExpr(first, left, operand, right);
+		}
+		return left;
+	}
+
+	// * MultiplicativeExpr ::= UnaryExpr (( * | / | % ) UnaryExpr)*
+	private Expr mul() throws PLCCompilerException {
+		var first = t;
+		Expr left = unare();
+		if (on(TIMES, DIV, MOD)) {
+			var operand = eat();
+			Expr right = unare();
+			left = new BinaryExpr(first, left, operand, right);
+		}
+		return left;
+	}
+
+	// * UnaryExpr ::= ( ! | - | length | width) UnaryExpr | UnaryExprPostfix
+	private Expr unare() throws PLCCompilerException {
+		var first = t;
+		if (on(BANG, MINUS, RES_width, RES_height)) {
+			var operand = eat();
+			Expr upon = unare();
+			return new UnaryExpr(first, operand, upon);
+		} else {
+			return unareAfter();
+		}
+	}
+
+	// * UnaryExprPostfix::= AtomizedOrParenthesized (PixelSelector | ε )
+	// (ChannelSelector | ε )
+	private Expr unareAfter() throws PLCCompilerException {
+		var first = t;
+		Expr left = atomOrParenned();
+		PixelSelector pixsel = null;
+		ChannelSelector chansel = null;
+		if (on(LSQUARE)) {
+			eat();
+			pixsel = pix2();
+		}
+		if (on(COLON)) { // not muex because square can activate the colon
+			eat();
+			chansel = colorSel();
+		}
+		if (pixsel == null && chansel == null)
+			return left;
+		else
+			return new PostfixExpr(first, left, pixsel, chansel);
+	}
+
+	// * ChannelSelector ::= : red | : green | : blue
+	private ChannelSelector colorSel() throws PLCCompilerException {
+		var color = t;
+		eat();
+		return new ChannelSelector(color, color);
+	}
+
+	// * PixelSelector ::= [ Expr , Expr ]
+	private PixelSelector pix2() throws PLCCompilerException {
+		var first = t;
+		Expr xExpr = expr();
+		require(COMMA);
+		Expr yExpr = expr();
+		require(RSQUARE);
+		return new PixelSelector(first, xExpr, yExpr);
+	}
+
+	// * ExpandedPixel ::= [ Expr , Expr , Expr ]
+	private Expr pix3() throws PLCCompilerException {
+		var first = t;
+		eat();
+		Expr red = expr();
+		require(COMMA);
+		Expr green = expr();
+		require(COMMA);
+		Expr blue = expr();
+		return new ExpandedPixelExpr(first, red, green, blue);
+
+	}
+
+	// * AtomizedOrParenthesized ::= ATOM | any Parenthesized Exp
+	private Expr atomOrParenned() throws PLCCompilerException {
+		var first = t;
+		Expr fact = null;
+		if (on(NUM_LIT, STRING_LIT, CONST, Kind.BOOLEAN_LIT, IDENT)) // int_lit
+		{
+			fact = (Expr) atomize(t);
+			eat();
+		} 
+		else if (on(LPAREN)) // OR (expr)
+		{
+			eat();
+			fact = expr();
+			require(RPAREN);
+		} 
+		else {
+			throw new SyntaxException("improper expectation for grammene 'Factor'. on: " + t.text());
+		}
+		return fact;
+	}
+
+	// * Expr::= ConditionalExpr | LogicalOrExpr
+	private Expr expr() throws PLCCompilerException, LexicalException {
+		var first = t;
+		Expr main = null;
+		if (on(QUESTION, LSQUARE)) {
+			if (on(QUESTION)) { // Expr is Conditional | LogicalOr
+				main = condie();
+			}
+			if (on(LSQUARE)) {
+				main = pix3();
+			}
+		}
+		else {
+			main = logor();
+		}
+
+		return main;
+	}
+
+	private AST atomize(IToken token) throws SyntaxException {
+		return switch (token.kind()) {
+			case IDENT -> new IdentExpr(token);
+			case STRING_LIT -> new StringLitExpr(token);
+			case NUM_LIT -> new NumLitExpr(token);
+			case CONST -> new ConstExpr(token);
+			case BOOLEAN_LIT -> new BooleanLitExpr(token);
+			case RES_blue, RES_green, RES_red -> new ChannelSelector(token, token);
+			default -> throw new SyntaxException("You can't atomize the token of type : " + token.text());
+		};
+	}
+
+	private boolean on(Kind... kinds) {
+		boolean match = false;
+		for (var k : kinds) {
+			if (t.kind() == k) {
+				match = true;
+				break;
+			}
+		}
+		return match;
+	}
+
+	private boolean ahead(Kind... kinds) {
+		boolean match = false;
+		for (var kind : kinds) {
+			if (n.kind() == kind) {
+				match = true;
+				break;
+			}
+		}
+		return match;
+	}
+
+	private IToken eat() throws LexicalException {
+		IToken tempm = t;
+		t = n;
+		n = lexer.next();
+		return tempm;
+	}
+
+	private IToken require(Kind... requirements) throws SyntaxException, LexicalException {
+		return require(true, requirements);
+	}
+
+	private IToken require(boolean skip, Kind... requirements) throws SyntaxException, LexicalException {
+		boolean met = false;
+		for (var requirement : requirements) {
+
+			if (t.kind() == requirement) {
+				met = true;
+				break;
+			}
+		}
+		if (!met)
+			throw new SyntaxException("The required syntax punctuation has not been met.");
+		if (skip)
+			return eat();
+		else
+			return t;
+	}
 }
