@@ -346,26 +346,26 @@ class ExpressionParserTest_starter {
 				""";
 		AST ast = getAST(input);
 		checkBinaryExpr(ast, Kind.PLUS);
-		Expr v0 = ((BinaryExpr) ast).getLeftExpr();
-		checkBinaryExpr(v0, Kind.MINUS);
-		Expr v1 = ((BinaryExpr) v0).getLeftExpr();
-		checkNumLitExpr(v1, 1);
-		Expr v2 = ((BinaryExpr) v0).getRightExpr();
-		checkNumLitExpr(v2, 2);
-		Expr v3 = ((BinaryExpr) ast).getRightExpr();
-		checkBinaryExpr(v3, Kind.MOD);
-		Expr v4 = ((BinaryExpr) v3).getLeftExpr();
-		checkBinaryExpr(v4, Kind.DIV);
-		Expr v5 = ((BinaryExpr) v4).getLeftExpr();
-		checkBinaryExpr(v5, Kind.TIMES);
-		Expr v6 = ((BinaryExpr) v5).getLeftExpr();
-		checkNumLitExpr(v6, 3);
-		Expr v7 = ((BinaryExpr) v5).getRightExpr();
-		checkNumLitExpr(v7, 4);
-		Expr v8 = ((BinaryExpr) v4).getRightExpr();
-		checkNumLitExpr(v8, 5);
-		Expr v9 = ((BinaryExpr) v3).getRightExpr();
-		checkNumLitExpr(v9, 6);
+		Expr al = ((BinaryExpr) ast).getLeftExpr();
+		checkBinaryExpr(al, Kind.MINUS);
+		Expr all = ((BinaryExpr) al).getLeftExpr();
+		checkNumLitExpr(all, 1);
+		Expr alr = ((BinaryExpr) al).getRightExpr();
+		checkNumLitExpr(alr, 2);
+		Expr ar = ((BinaryExpr) ast).getRightExpr();
+		checkBinaryExpr(ar, Kind.MOD);
+		Expr arl = ((BinaryExpr) ar).getLeftExpr();
+		checkBinaryExpr(arl, Kind.DIV);
+		Expr arll = ((BinaryExpr) arl).getLeftExpr();
+		checkBinaryExpr(arll, Kind.TIMES);
+		Expr arlll = ((BinaryExpr) arll).getLeftExpr();
+		checkNumLitExpr(arlll, 3);
+		Expr arllr = ((BinaryExpr) arll).getRightExpr();
+		checkNumLitExpr(arllr, 4);
+		Expr arlr = ((BinaryExpr) arl).getRightExpr();
+		checkNumLitExpr(arlr, 5);
+		Expr arr = ((BinaryExpr) ar).getRightExpr();
+		checkNumLitExpr(arr, 6);
 	}
 
 	@Test

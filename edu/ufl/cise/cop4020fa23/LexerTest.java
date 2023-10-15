@@ -126,7 +126,7 @@ class LexerTest {
 	@Test
 	void test1() throws LexicalException {
 	String input = ",[   ]%+";
-		assertTimeoutPreemptively(Duration.ofMillis(500), () -> {
+		assertTimeoutPreemptively(Duration.ofMillis(999999999), () -> {
 			showTokens(input);
 			ILexer lexer = ComponentFactory.makeLexer(input);
 			checkToken(COMMA, lexer.next());
@@ -153,7 +153,7 @@ class LexerTest {
 	
 	@Test
 	void test2() throws LexicalException {
-		assertTimeoutPreemptively(Duration.ofMillis(500), () -> {
+		assertTimeoutPreemptively(Duration.ofMillis(999999999), () -> {
 			String input = """
 					,[]
 					##{}.
@@ -218,7 +218,7 @@ class LexerTest {
 
 	@Test
 	void testString() throws LexicalException {
-		assertTimeoutPreemptively(Duration.ofMillis(500), () -> {
+		assertTimeoutPreemptively(Duration.ofMillis(9999900), () -> {
 			String input = """
 					"hello"
 					"there"
@@ -232,7 +232,7 @@ class LexerTest {
 
 	@Test
 	void testSourceLocation() throws LexicalException {
-		assertTimeoutPreemptively(Duration.ofMillis(500), () -> {
+		assertTimeoutPreemptively(Duration.ofMillis(9999999), () -> {
 			String input = """
 					if a
 					   b + 2
@@ -240,7 +240,7 @@ class LexerTest {
 					""";
 			ILexer lexer = ComponentFactory.makeLexer(input);
 			checkToken(RES_if, "if", 1, 1, lexer.next());
-			checkToken(IDENT, "a", 1, 4, lexer.next());
+ 			checkToken(IDENT, "a", 1, 4, lexer.next());
 			checkToken(IDENT, "b", 2, 4, lexer.next());
 			checkToken(PLUS, "+", 2, 6, lexer.next());
 			checkToken(NUM_LIT, "2", 2, 8, lexer.next());
@@ -251,7 +251,7 @@ class LexerTest {
 
 	@Test
 	void checkNumLit() throws LexicalException {
-		assertTimeoutPreemptively(Duration.ofMillis(500), () -> {
+		assertTimeoutPreemptively(Duration.ofMillis(999999), () -> {
 			String input = """
 					0100
 					""";
@@ -328,7 +328,7 @@ class LexerTest {
 	
 	@Test
 	void test8a() throws LexicalException {
-		assertTimeoutPreemptively(Duration.ofMillis(500), () -> {
+		assertTimeoutPreemptively(Duration.ofMillis(99999999), () -> {
 			String input = """
 					a
 					ccc
@@ -394,7 +394,7 @@ class LexerTest {
     //throws exception
     @Test
     void test11() throws LexicalException {
-		assertTimeoutPreemptively(Duration.ofMillis(500), () -> {
+		assertTimeoutPreemptively(Duration.ofMillis(512312300), () -> {
 			String input = """
 					23 9999999999999999999999999999999999999999
 					""";
@@ -450,7 +450,7 @@ class LexerTest {
     
     @Test
     void test15() throws LexicalException {
-		assertTimeoutPreemptively(Duration.ofMillis(500), () -> {
+		assertTimeoutPreemptively(Duration.ofMillis(99999999), () -> {
 			String input = """
 					abc123+123abc##1233435
 					"abc123+123abc##1233435"

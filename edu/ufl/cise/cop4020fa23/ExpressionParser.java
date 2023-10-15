@@ -152,7 +152,7 @@ public class ExpressionParser implements IParser {
 	private Expr pow() throws PLCCompilerException {
 		var first = t;
 		Expr left = add();
-		if (on(EXP)) {
+		while (on(EXP)) {
 			var power = eat();
 			Expr right = pow();
 			left = new BinaryExpr(first, left, power, right);
@@ -164,7 +164,7 @@ public class ExpressionParser implements IParser {
 	private Expr add() throws PLCCompilerException {
 		var first = t;
 		Expr left = mul();
-		if (on(MINUS, PLUS)) {
+		while (on(MINUS, PLUS)) {
 			var operand = eat();
 			Expr right = mul();
 			left = new BinaryExpr(first, left, operand, right);
@@ -176,7 +176,7 @@ public class ExpressionParser implements IParser {
 	private Expr mul() throws PLCCompilerException {
 		var first = t;
 		Expr left = unare();
-		if (on(TIMES, DIV, MOD)) {
+		while (on(TIMES, DIV, MOD)) {
 			var operand = eat();
 			Expr right = unare();
 			left = new BinaryExpr(first, left, operand, right);
@@ -220,6 +220,7 @@ public class ExpressionParser implements IParser {
 	// * ChannelSelector ::= : red | : green | : blue
 	private ChannelSelector colorSel() throws PLCCompilerException {
 		var color = t;
+		if (!on(RES_red, RES_green, RES_blue)) throw new SyntaxException("Invalid channel selection color.");
 		eat();
 		return new ChannelSelector(color, color);
 	}
@@ -261,7 +262,11 @@ public class ExpressionParser implements IParser {
 			eat();
 			fact = expr();
 			require(RPAREN);
-		} 
+		}
+		else if (on(LSQUARE)) {
+			fact = pix3();
+			eat();
+		}
 		else {
 			throw new SyntaxException("improper expectation for grammene 'Factor'. on: " + t.text());
 		}
@@ -272,12 +277,9 @@ public class ExpressionParser implements IParser {
 	private Expr expr() throws PLCCompilerException, LexicalException {
 		var first = t;
 		Expr main = null;
-		if (on(QUESTION, LSQUARE)) {
+		if (on(QUESTION)) {
 			if (on(QUESTION)) { // Expr is Conditional | LogicalOr
 				main = condie();
-			}
-			if (on(LSQUARE)) {
-				main = pix3();
 			}
 		}
 		else {
