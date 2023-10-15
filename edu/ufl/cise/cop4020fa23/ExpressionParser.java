@@ -70,8 +70,8 @@ public class ExpressionParser implements IParser {
 
 	final ILexer lexer;
 	boolean sniffed = false;
-	private IToken t;
-	private IToken n;
+	protected IToken t;
+	protected IToken n;
 
 	/**
 	 * @param lexer
@@ -95,7 +95,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * ConditionalExpr ::= ? Expr : Expr : Expr
-	private Expr condie() throws PLCCompilerException // base-level chain. End exactly here
+	protected Expr condie() throws PLCCompilerException // base-level chain. End exactly here
 	{
 		var first = t;
 		Expr condie = null;
@@ -109,7 +109,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * LogicalOrExpr ::= LogicalAndExpr ( ( | | || ) LogicalAndExpr)*
-	private Expr logor() throws PLCCompilerException {
+	protected Expr logor() throws PLCCompilerException {
 		// musthave logand
 		var first = t;
 		Expr left = logand();
@@ -123,7 +123,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * LogicalAndExpr ::= ComparisonExpr ( ( & | && ) ComparisonExpr)*
-	private Expr logand() throws PLCCompilerException {
+	protected Expr logand() throws PLCCompilerException {
 		var first = t;
 		Expr left = compar();
 		Expr right = null;
@@ -136,7 +136,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * ComparisonExpr ::= PowExpr ( (< | > | == | <= | >=) PowExpr)*
-	private Expr compar() throws PLCCompilerException {
+	protected Expr compar() throws PLCCompilerException {
 		var first = t;
 		Expr left = pow();
 		Expr right = null;
@@ -149,7 +149,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * PowExpr ::= AdditiveExpr ** PowExpr | AdditiveExpr
-	private Expr pow() throws PLCCompilerException {
+	protected Expr pow() throws PLCCompilerException {
 		var first = t;
 		Expr left = add();
 		while (on(EXP)) {
@@ -161,7 +161,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * AdditiveExpr ::= MultiplicativeExpr ( ( + | - ) MultiplicativeExpr )*
-	private Expr add() throws PLCCompilerException {
+	protected Expr add() throws PLCCompilerException {
 		var first = t;
 		Expr left = mul();
 		while (on(MINUS, PLUS)) {
@@ -173,7 +173,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * MultiplicativeExpr ::= UnaryExpr (( * | / | % ) UnaryExpr)*
-	private Expr mul() throws PLCCompilerException {
+	protected Expr mul() throws PLCCompilerException {
 		var first = t;
 		Expr left = unare();
 		while (on(TIMES, DIV, MOD)) {
@@ -185,7 +185,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * UnaryExpr ::= ( ! | - | length | width) UnaryExpr | UnaryExprPostfix
-	private Expr unare() throws PLCCompilerException {
+	protected Expr unare() throws PLCCompilerException {
 		var first = t;
 		if (on(BANG, MINUS, RES_width, RES_height)) {
 			var operand = eat();
@@ -198,7 +198,7 @@ public class ExpressionParser implements IParser {
 
 	// * UnaryExprPostfix::= AtomizedOrParenthesized (PixelSelector | ε )
 	// (ChannelSelector | ε )
-	private Expr unareAfter() throws PLCCompilerException {
+	protected Expr unareAfter() throws PLCCompilerException {
 		var first = t;
 		Expr left = atomOrParenned();
 		PixelSelector pixsel = null;
@@ -218,7 +218,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * ChannelSelector ::= : red | : green | : blue
-	private ChannelSelector colorSel() throws PLCCompilerException {
+	protected ChannelSelector colorSel() throws PLCCompilerException {
 		var color = t;
 		if (!on(RES_red, RES_green, RES_blue)) throw new SyntaxException("Invalid channel selection color.");
 		eat();
@@ -226,7 +226,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * PixelSelector ::= [ Expr , Expr ]
-	private PixelSelector pix2() throws PLCCompilerException {
+	protected PixelSelector pix2() throws PLCCompilerException {
 		var first = t;
 		Expr xExpr = expr();
 		require(COMMA);
@@ -236,7 +236,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * ExpandedPixel ::= [ Expr , Expr , Expr ]
-	private Expr pix3() throws PLCCompilerException {
+	protected Expr pix3() throws PLCCompilerException {
 		var first = t;
 		eat();
 		Expr red = expr();
@@ -249,7 +249,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * AtomizedOrParenthesized ::= ATOM | any Parenthesized Exp
-	private Expr atomOrParenned() throws PLCCompilerException {
+	protected Expr atomOrParenned() throws PLCCompilerException {
 		var first = t;
 		Expr fact = null;
 		if (on(NUM_LIT, STRING_LIT, CONST, Kind.BOOLEAN_LIT, IDENT)) // int_lit
@@ -274,7 +274,7 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * Expr::= ConditionalExpr | LogicalOrExpr
-	private Expr expr() throws PLCCompilerException, LexicalException {
+	protected Expr expr() throws PLCCompilerException, LexicalException {
 		var first = t;
 		Expr main = null;
 		if (on(QUESTION)) {
@@ -289,7 +289,7 @@ public class ExpressionParser implements IParser {
 		return main;
 	}
 
-	private AST atomize(IToken token) throws SyntaxException {
+	protected AST atomize(IToken token) throws SyntaxException {
 		return switch (token.kind()) {
 			case IDENT -> new IdentExpr(token);
 			case STRING_LIT -> new StringLitExpr(token);
@@ -301,7 +301,7 @@ public class ExpressionParser implements IParser {
 		};
 	}
 
-	private boolean on(Kind... kinds) {
+	protected boolean on(Kind... kinds) {
 		boolean match = false;
 		for (var k : kinds) {
 			if (t.kind() == k) {
@@ -312,7 +312,7 @@ public class ExpressionParser implements IParser {
 		return match;
 	}
 
-	private boolean ahead(Kind... kinds) {
+	protected boolean ahead(Kind... kinds) {
 		boolean match = false;
 		for (var kind : kinds) {
 			if (n.kind() == kind) {
@@ -323,18 +323,18 @@ public class ExpressionParser implements IParser {
 		return match;
 	}
 
-	private IToken eat() throws LexicalException {
+	protected IToken eat() throws LexicalException {
 		IToken tempm = t;
 		t = n;
 		n = lexer.next();
 		return tempm;
 	}
 
-	private IToken require(Kind... requirements) throws SyntaxException, LexicalException {
+	protected IToken require(Kind... requirements) throws SyntaxException, LexicalException {
 		return require(true, requirements);
 	}
 
-	private IToken require(boolean skip, Kind... requirements) throws SyntaxException, LexicalException {
+	protected IToken require(boolean skip, Kind... requirements) throws SyntaxException, LexicalException {
 		boolean met = false;
 		for (var requirement : requirements) {
 
