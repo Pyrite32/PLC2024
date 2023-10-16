@@ -23,9 +23,6 @@ public class Lexer implements ILexer {
         LexicalStructure.initializeLexicalStructure();
         removeWhitespace(input);
         source = input;
-        for (var lexable : lexableIslands) {
-            System.out.println("island:" + lexable.toString());
-        }
     }
 
     private enum LexerState {

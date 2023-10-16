@@ -334,6 +334,20 @@ public class ExpressionParser implements IParser {
 		return require(true, requirements);
 	}
 
+	protected void reject(Kind... requirements) throws SyntaxException, LexicalException {
+		boolean throwMe = false;
+		try
+		{
+			// don't skip --- this behaves more like a scan rather than a requirement
+			require(false, requirements);
+			throwMe = true;
+		}
+		catch (SyntaxException e) {
+			throwMe = false;
+		}
+		if (throwMe) throw new SyntaxException("Rejected token as it was not expected there.");
+	}
+
 	protected IToken require(boolean skip, Kind... requirements) throws SyntaxException, LexicalException {
 		boolean met = false;
 		for (var requirement : requirements) {

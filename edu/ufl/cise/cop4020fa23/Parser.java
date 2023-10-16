@@ -146,11 +146,17 @@ public class Parser extends ExpressionParser {
 			LinkedList<GuardedBlock> doMembers = new LinkedList<GuardedBlock>();
 			var guardBlockFirst = guardedBlock();
 			doMembers.add(guardBlockFirst);
-			require(BOX);
-			while (!on(RES_od)) {
-				doMembers.add(guardedBlock());
+			if (on(BOX)) {
+				eat();
+				reject(RES_od);
+				while (!on(RES_od)) {
+					doMembers.add(guardedBlock());
+					if (!on(BOX)) break;
+					eat();
+					reject(RES_od);
+				}
 			}
-			eat();
+			require(RES_od);
 			return new DoStatement(first, doMembers);
 		}
 		else if (on(RES_if)) {
@@ -158,11 +164,17 @@ public class Parser extends ExpressionParser {
 			LinkedList<GuardedBlock> ifMembers = new LinkedList<GuardedBlock>();
 			var guardBlockFirst = guardedBlock();
 			ifMembers.add(guardBlockFirst);
-			require(BOX);
-			while (!on(RES_fi)) {
-				ifMembers.add(guardedBlock());
+			if (on(BOX)) {
+				eat();
+				reject(RES_fi);
+				while (!on(RES_fi)) {
+					ifMembers.add(guardedBlock());
+					if (!on(BOX)) break;
+					eat();
+					reject(RES_fi);
+				}
 			}
-			eat();
+			require(RES_fi);
 			return new IfStatement(first, ifMembers);
 		}
 		else if (on(RETURN)) {

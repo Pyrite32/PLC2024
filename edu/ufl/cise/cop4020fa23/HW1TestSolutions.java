@@ -31,7 +31,7 @@ import edu.ufl.cise.cop4020fa23.Kind;
 import edu.ufl.cise.cop4020fa23.ComponentFactory;
 
 class HW1TestSolutions {
-    static final int TIMEOUT_MILLIS = 66666666;
+    static final int TIMEOUT_MILLIS = 1000;
 
     /**
      * Constructs a scanner and parser for the given input string, scans and parses
