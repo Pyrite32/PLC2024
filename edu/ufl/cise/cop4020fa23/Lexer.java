@@ -16,6 +16,7 @@ public class Lexer implements ILexer {
 
     boolean errf = false;
     String source;
+    char[] sourceArr;
 
     private Queue<Token> awaitTokens = new LinkedList<Token>();
 
@@ -23,6 +24,13 @@ public class Lexer implements ILexer {
         LexicalStructure.initializeLexicalStructure();
         removeWhitespace(input);
         source = input;
+        for (var isl : lexableIslands) {
+            System.out.println("island:"+isl);
+        }
+        sourceArr = new char[input.length()];
+        for (int i = 0; i < sourceArr.length; i++) {
+            sourceArr[i] = input.charAt(i);
+        }
     }
 
     private enum LexerState {
@@ -45,15 +53,15 @@ public class Lexer implements ILexer {
             return awaitTokens.remove();
         }
         if (lexableIslands.size() == 0) {
-            return new Token(EOF, 0, 0, "", new SourceLocation(1, 1));
+            return new Token(EOF, 0, 0, null, new SourceLocation(1, 1));
         }
         
         
         var currentIsland = lexableIslands.pop();
 
         // return string literal
-        if (currentIsland.contents().charAt(0) == '\"') {
-            return new Token(Kind.STRING_LIT, 0, currentIsland.contents().length(), currentIsland.contents(),
+        if (currentIsland.contents().charAt(0) == '\"') {       // -1 in order to accomodate for the previous " char.
+            return new Token(Kind.STRING_LIT, currentIsland.stringOffset()-1, currentIsland.contents().length(), sourceArr,
                     currentIsland.location());
         }
 
@@ -71,21 +79,21 @@ public class Lexer implements ILexer {
                 i--; // because when the state changes, the new state-changing token isn't properly accomodated.
                 switch (initialState) {
                     case ALPHANUMERIC, ALPHA_ONLY, IDENTIFIER:
-                        processAlphaNumToken(currentStateChars, i, initialState, currentIsland.location());
+                        processAlphaNumToken(currentStateChars, i + currentIsland.stringOffset() - currentStateChars.length() + 1, initialState, currentIsland.location());
                         currentStateChars = "";
                         break;
                     case NUMERAL, ZERO:
                         awaitTokens.add(new Token(
                                 Kind.NUM_LIT,
-                                i,
+                                currentIsland.stringOffset() + i - currentStateChars.length() + 1,
                                 currentStateChars.length(),
-                                currentStateChars,
+                                sourceArr,
                                 new SourceLocation(currentIsland.location().line(),
-                                        currentIsland.location().column() + i)));
+                                        currentIsland.location().column() + i + currentIsland.stringOffset())));
                         currentStateChars = "";
                         break;
                     case OTHERCHAR:
-                        processOtherCharTokens(currentStateChars, currentIsland.location());
+                        processOtherCharTokens(currentStateChars, i + currentIsland.stringOffset() - currentStateChars.length() ,currentIsland.location());
                         currentStateChars = "";
                         break;
                     default:
@@ -94,9 +102,9 @@ public class Lexer implements ILexer {
             } else if (newState == LexerState.ZERO) {
                 awaitTokens.add(new Token(
                         Kind.NUM_LIT,
-                        i,
+                        currentIsland.stringOffset() + i,
                         1,
-                        "0",
+                        sourceArr,
                         new SourceLocation(currentIsland.location().line(),
                                 currentIsland.location().column() + i)));
                 newState = LexerState.START;
@@ -115,11 +123,11 @@ public class Lexer implements ILexer {
             switch (initialState) {
             case ALPHANUMERIC, ALPHA_ONLY, IDENTIFIER, NUMERAL, ZERO:
                 SourceLocation loc = new SourceLocation(currentIsland.location().line(), islandString.length() - currentStateChars.length() + currentIsland.location().column());
-                processAlphaNumToken(currentStateChars, islandString.length() - currentStateChars.length(), newState, loc);
+                processAlphaNumToken(currentStateChars, islandString.length() - currentStateChars.length() + currentIsland.stringOffset(), newState, loc);
                 currentStateChars = "";
                 break;
             case OTHERCHAR:
-                processOtherCharTokens(currentStateChars, currentIsland.location());
+                processOtherCharTokens(currentStateChars, currentIsland.stringOffset() + (currentIsland.contents().length() - currentStateChars.length()), currentIsland.location());
                 currentStateChars = "";
                 break;
             default:
@@ -131,7 +139,7 @@ public class Lexer implements ILexer {
             return awaitTokens.remove();
         }
 
-        return new Token(EOF, 0, 0, "", new SourceLocation(1, 1));
+        return new Token(EOF, 0, 0, null, new SourceLocation(1, 1));
     }
 
     private void processAlphaNumToken(String source, int position, LexerState oldState, SourceLocation location) throws LexicalException {
@@ -145,7 +153,7 @@ public class Lexer implements ILexer {
             awaitTokens.add(new Token(tokenType,
                     position,
                     source.length(),
-                    source,
+                    sourceArr,
                     location));
             return;
         }
@@ -156,7 +164,7 @@ public class Lexer implements ILexer {
              awaitTokens.add(new Token(Kind.IDENT,
                     position,
                     source.length(),
-                    source,
+                    sourceArr,
                     location));
             return;
         }
@@ -171,14 +179,14 @@ public class Lexer implements ILexer {
             awaitTokens.add(new Token(Kind.NUM_LIT,
                     position,
                     source.length(),
-                    source,
+                    sourceArr,
                     location));
             return;
         }
         throw new LexicalException("The state is not Alpha only, alphanumeric, numeric, or an exact match: it is : " + oldState.toString());
     }
 
-    private void processOtherCharTokens(String source, SourceLocation location) {
+    private void processOtherCharTokens(String source, int pos, SourceLocation location) {
         int i = 0;
         while (i < source.length()) {
             // double-matching available
@@ -191,9 +199,9 @@ public class Lexer implements ILexer {
                 if (kindMatch != Kind.ERROR && kindMatch != null) {
                     awaitTokens.add(
                             new Token(kindMatch,
-                                    location.column() + i,
+                                    pos + i,
                                     2,
-                                    currentTwoChars,
+                                    sourceArr,
                                     new SourceLocation(location.line(), location.column() + i)));
                     i += 2;
                     doubleMatchFailed = false;
@@ -206,17 +214,17 @@ public class Lexer implements ILexer {
                 if (kindMatch != Kind.ERROR && kindMatch != null) {
                     awaitTokens.add(
                             new Token(kindMatch,
-                                    location.column() + i,
+                                    pos + i,
                                     1,
-                                    currentChar,
+                                    sourceArr,
                                     new SourceLocation(location.line(), location.column() + i)));
                 } else {
                     // erroneous token detected!
                     awaitTokens.add(
                             new Token(Kind.ERROR,
-                                    location.column() + i,
+                                    pos + i,
                                     1,
-                                    currentChar,
+                                    sourceArr,
                                     new SourceLocation(location.line(), location.column() + i)));
                 }
                 i += 1;
@@ -301,7 +309,7 @@ public class Lexer implements ILexer {
                         currentState = ProcessState.STRING;
                         if (cluster != "")
                             lexableIslands
-                                    .add(new LexibleCluster(cluster, new SourceLocation(sourceRow, sourceColumn)));
+                                    .add(new LexibleCluster(cluster, new SourceLocation(sourceRow, sourceColumn), i - cluster.length()));
                         cluster = "";
                         break;
                     }
@@ -309,14 +317,14 @@ public class Lexer implements ILexer {
                         currentState = ProcessState.COMMENT;
                         if (cluster != "")
                             lexableIslands
-                                    .add(new LexibleCluster(cluster, new SourceLocation(sourceRow, sourceColumn)));
+                                    .add(new LexibleCluster(cluster, new SourceLocation(sourceRow, sourceColumn), i - cluster.length()));
                         cluster = "";
                         break;
                     }
                     if (currentChar == ' ' || currentChar == '\n' || currentChar == '\r') {
                         if (cluster != "")
                             lexableIslands.add(new LexibleCluster(cluster,
-                                    new SourceLocation(sourceRow, sourceColumn - cluster.length())));
+                                    new SourceLocation(sourceRow, sourceColumn - cluster.length()), i - cluster.length()));
                         cluster = "";
                         break;
                     }
@@ -326,7 +334,7 @@ public class Lexer implements ILexer {
                     if (currentChar == '"') {
                         currentState = ProcessState.NORMAL;
                         lexableIslands.add(new LexibleCluster('"' + cluster + '"',
-                                new SourceLocation(sourceRow, sourceColumn - cluster.length() - 1)));
+                                new SourceLocation(sourceRow, sourceColumn - cluster.length() - 1), i - cluster.length()));
                         cluster = "";
                         break;
                     }
@@ -349,7 +357,7 @@ public class Lexer implements ILexer {
         }
         if (cluster != "")
             lexableIslands
-                    .add(new LexibleCluster(cluster, new SourceLocation(sourceRow, sourceColumn - cluster.length())));
+                    .add(new LexibleCluster(cluster, new SourceLocation(sourceRow, sourceColumn - cluster.length()), input.length() - cluster.length()));
 
         // removes comments
         // removes whitespace

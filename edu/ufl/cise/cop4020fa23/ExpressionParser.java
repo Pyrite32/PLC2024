@@ -95,10 +95,10 @@ public class ExpressionParser implements IParser {
 	}
 
 	// * ConditionalExpr ::= ? Expr : Expr : Expr
-	protected Expr condie() throws PLCCompilerException // base-level chain. End exactly here
+	protected Expr cond() throws PLCCompilerException // base-level chain. End exactly here
 	{
 		var first = t;
-		Expr condie = null;
+		Expr cond = null;
 		eat();
 		Expr condition = expr();
 		require(RARROW);
@@ -279,7 +279,7 @@ public class ExpressionParser implements IParser {
 		Expr main = null;
 		if (on(QUESTION)) {
 			if (on(QUESTION)) { // Expr is Conditional | LogicalOr
-				main = condie();
+				main = cond();
 			}
 		}
 		else {

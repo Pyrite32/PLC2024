@@ -38,20 +38,6 @@ public class Token implements IToken {
 		this.location = location;
 	}
 
-	public Token(Kind kind, int pos, int length, String source, SourceLocation location) {
-		super();
-		this.kind = kind;
-		this.pos = pos;
-		this.length = length;
-		this.source = new char[source.length()];
-		for (int i = 0; i < this.source.length; i++)
-		{
-			this.source[i] = source.charAt(i);
-		}
-
-		this.location = location;
-	}
-
 	@Override
 	public SourceLocation sourceLocation() {
 		return location;
@@ -65,14 +51,7 @@ public class Token implements IToken {
 	@Override
 	public String text() {
 		if(length > 0) {
-			// TODO: fix text
-			//return String.copyValueOf(source, pos, length);
-			String res = "";
-			for (int i = 0; i < source.length; i++)
-			{
-				res += source[i];
-			}
-			return res;
+			return String.copyValueOf(source, pos, length);
 		}
 		return "";
 	}
