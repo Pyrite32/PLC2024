@@ -24,11 +24,8 @@ import edu.ufl.cise.cop4020fa23.ast.PostfixExpr;
 import edu.ufl.cise.cop4020fa23.ast.StringLitExpr;
 import edu.ufl.cise.cop4020fa23.ast.UnaryExpr;
 import edu.ufl.cise.cop4020fa23.ast.ExpandedPixelExpr;
-import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
 import edu.ufl.cise.cop4020fa23.exceptions.PLCCompilerException;
 import edu.ufl.cise.cop4020fa23.exceptions.SyntaxException;
-import edu.ufl.cise.cop4020fa23.Kind;
-import edu.ufl.cise.cop4020fa23.ComponentFactory;
 
 class HW1TestSolutions {
     static final int TIMEOUT_MILLIS = 1000;

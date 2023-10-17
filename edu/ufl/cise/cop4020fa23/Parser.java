@@ -15,12 +15,9 @@ import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
 import edu.ufl.cise.cop4020fa23.exceptions.PLCCompilerException;
 import edu.ufl.cise.cop4020fa23.exceptions.SyntaxException;
 
-import edu.ufl.cise.cop4020fa23.ExpressionParser;
 
 import static edu.ufl.cise.cop4020fa23.Kind.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 

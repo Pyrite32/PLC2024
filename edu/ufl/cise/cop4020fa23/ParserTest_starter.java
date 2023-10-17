@@ -823,13 +823,13 @@ void show(Object obj) {
 void testInvalidMultiIfState() throws PLCCompilerException {
    String input = """
          void p()<:
-            if z -> <:
+            do z -> <:
                 int x;
             :>
             y -> <:
                 int x;
             :>
-            fi;
+            od;
           :>
          """;
    SyntaxException e = assertThrows(SyntaxException.class, () -> getAST(input));

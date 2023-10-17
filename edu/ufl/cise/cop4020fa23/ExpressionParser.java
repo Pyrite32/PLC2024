@@ -44,10 +44,6 @@ import static edu.ufl.cise.cop4020fa23.Kind.STRING_LIT;
 import static edu.ufl.cise.cop4020fa23.Kind.TIMES;
 import static edu.ufl.cise.cop4020fa23.Kind.CONST;
 
-import java.util.Arrays;
-
-import javax.sound.midi.MidiChannel;
-
 import edu.ufl.cise.cop4020fa23.ast.AST;
 import edu.ufl.cise.cop4020fa23.ast.BinaryExpr;
 import edu.ufl.cise.cop4020fa23.ast.BooleanLitExpr;
@@ -98,7 +94,6 @@ public class ExpressionParser implements IParser {
 	protected Expr cond() throws PLCCompilerException // base-level chain. End exactly here
 	{
 		var first = t;
-		Expr cond = null;
 		eat();
 		Expr condition = expr();
 		require(RARROW);
@@ -248,9 +243,8 @@ public class ExpressionParser implements IParser {
 
 	}
 
-	// * AtomizedOrParenthesized ::= ATOM | any Parenthesized Exp
+	// * AtomizedOrParenthesized ::= ATOM | any Parenthesized Exps
 	protected Expr atomOrParenned() throws PLCCompilerException {
-		var first = t;
 		Expr fact = null;
 		if (on(NUM_LIT, STRING_LIT, CONST, Kind.BOOLEAN_LIT, IDENT)) // int_lit
 		{
@@ -275,7 +269,6 @@ public class ExpressionParser implements IParser {
 
 	// * Expr::= ConditionalExpr | LogicalOrExpr
 	protected Expr expr() throws PLCCompilerException, LexicalException {
-		var first = t;
 		Expr main = null;
 		if (on(QUESTION)) {
 			if (on(QUESTION)) { // Expr is Conditional | LogicalOr

@@ -1,12 +1,10 @@
 package edu.ufl.cise.cop4020fa23;
 
-import edu.ufl.cise.cop4020fa23.Lexer.ProcessState;
+
 import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
 
 import static edu.ufl.cise.cop4020fa23.Kind.EOF;
 
-import java.util.HashMap;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 

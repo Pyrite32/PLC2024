@@ -14,11 +14,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
-import edu.ufl.cise.cop4020fa23.Kind;
-import edu.ufl.cise.cop4020fa23.IToken;
-import edu.ufl.cise.cop4020fa23.SourceLocation;
-import edu.ufl.cise.cop4020fa23.ILexer;
-import edu.ufl.cise.cop4020fa23.ComponentFactory;
 
 import java.time.Duration;
 
