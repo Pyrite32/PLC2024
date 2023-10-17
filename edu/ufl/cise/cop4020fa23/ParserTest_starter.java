@@ -81,17 +81,6 @@ class ParserTest_starter {
 		return be;
 	}
 
-	private UnaryExpr checkUnaryExpr(AST e, Kind op) {
-		assertThat("", e, instanceOf(UnaryExpr.class));
-		assertEquals(op, ((UnaryExpr) e).getOp());
-		return (UnaryExpr) e;
-	}
-
-	private ConditionalExpr checkConditionalExpr(AST e) {
-		assertThat("", e, instanceOf(ConditionalExpr.class));
-		return (ConditionalExpr) e;
-	}
-
 	BinaryExpr checkBinaryExpr(AST e, Kind expectedOp) {
 		assertThat("", e, instanceOf(BinaryExpr.class));
 		BinaryExpr be = (BinaryExpr) e;
