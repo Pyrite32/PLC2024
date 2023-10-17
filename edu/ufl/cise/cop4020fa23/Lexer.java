@@ -24,9 +24,6 @@ public class Lexer implements ILexer {
         LexicalStructure.initializeLexicalStructure();
         removeWhitespace(input);
         source = input;
-        for (var isl : lexableIslands) {
-            System.out.println("island:"+isl);
-        }
         sourceArr = new char[input.length()];
         for (int i = 0; i < sourceArr.length; i++) {
             sourceArr[i] = input.charAt(i);
