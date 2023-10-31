@@ -441,6 +441,20 @@ class TypeCheckTest_starter {
 	}
 
 	@Test
+	void playground1() throws PLCCompilerException {
+		String input = """
+				boolean f()<:
+				boolean b = TRUE;
+				int a = 2;
+				image[256,256] img;
+				pixel half = img[2,5];
+				^ (half ** 2) == img[2,4];
+				:>
+				""";
+		AST ast = getDecoratedAST(input);
+	}
+
+	@Test
 	void test7() throws PLCCompilerException {
 		String input = """
 				boolean f()<:
