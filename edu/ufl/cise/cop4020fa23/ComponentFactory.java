@@ -11,7 +11,6 @@ package edu.ufl.cise.cop4020fa23;
 
 import edu.ufl.cise.cop4020fa23.ast.ASTVisitor;
 import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
-import edu.ufl.cise.cop4020fa23.TypeCheckVisitor;
 
 /**
  * Factory class providing static methods to create and return various components of the compiler
