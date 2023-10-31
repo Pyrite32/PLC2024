@@ -91,7 +91,19 @@ public class TypeCheckVisitor implements ASTVisitor {
     @Override
     public Object visitNameDef(NameDef nameDef, Object arg) throws PLCCompilerException {
         System.out.println("Touch visitNameDef ");
-        table.put(nameDef.getName(), nameDef);
+        
+        if (arg != null) {
+            var shouldDeferAdd = (boolean) arg;
+            if (shouldDeferAdd) {
+                table.putDeferred(nameDef);
+            }
+            else {
+                table.put(nameDef.getName(), nameDef);
+            }
+        }
+        else {
+            table.put(nameDef.getName(), nameDef);
+        }
 
         if (nameDef.getTypeToken().kind() == Kind.RES_void) {
             throw new TypeCheckException(nameDef.firstToken().sourceLocation(), "Cannot declare variable of type 'void'.");
@@ -110,13 +122,13 @@ public class TypeCheckVisitor implements ASTVisitor {
         System.out.println("Touch VisitProgram ");
 
         ASTRoot = program;
+        ASTRoot.setType(res2Type(ASTRoot.getTypeToken()));
 
         List<NameDef> parameters = ASTRoot.getParams();
         for (var param : parameters) {
             param.visit(this, arg);
         }
         ASTRoot.getBlock().visit(this, arg);
-        ASTRoot.setType(res2Type(ASTRoot.getTypeToken()));
 
         System.out.println("Exit  VisitProgram ");
         return ASTRoot;
@@ -139,7 +151,7 @@ public class TypeCheckVisitor implements ASTVisitor {
     @Override
     public Object visitDeclaration(Declaration declaration, Object arg) throws PLCCompilerException {
         System.out.println("Touch visitDeclaration ");
-        declaration.getNameDef().visit(this, arg);
+        declaration.getNameDef().visit(this, true);
 
         var varType = res2Type(declaration.firstToken());
 
@@ -157,6 +169,7 @@ public class TypeCheckVisitor implements ASTVisitor {
             }
             declaration.getInitializer().setType((Type) initType);
         }
+        table.flushDeferredPuts();
         System.out.println("Exit  visitDeclaration ");
         return null;
     }
@@ -195,6 +208,12 @@ public class TypeCheckVisitor implements ASTVisitor {
             returnStatement.getE().visit(this, type);
         }
         returnStatement.getE().visit(this, arg);
+
+        var finalType = returnStatement.getE().getType();
+        if (finalType != ASTRoot.getType()) {
+            throw new TypeCheckException(returnStatement.firstToken().sourceLocation(), "Return type " + finalType.toString() + " does not match the expected type " + ASTRoot.getType().toString());
+        }
+
         System.out.println("Exit  visitReturnStatement ");
         return null;
     }
@@ -277,7 +296,7 @@ public class TypeCheckVisitor implements ASTVisitor {
             throws PLCCompilerException {
         System.out.println("Touch visitAssignmentStatement ");
 
-        assignmentStatement.getlValue().visit(this, arg);
+        assignmentStatement.getlValue().visit(this, true);
         assignmentStatement.getE().visit(this, arg);
 
         // the only time swizzles are used is in assignment statements I THINK, ALTHOUGH

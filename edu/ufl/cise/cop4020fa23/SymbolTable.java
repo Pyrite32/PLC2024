@@ -11,11 +11,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Stack;
+import java.util.Queue;
 
 public class SymbolTable {
 
     private Stack<HashMap<String, NameDef>> names;
     private List<List<NameDef>> inherited;
+    private Queue<NameDef> addQueue;
 
     // private Stack<Boolean> swizzlingX;
     // private Stack<Boolean> swizzlingY;
@@ -31,6 +33,7 @@ public class SymbolTable {
         inherited = new ArrayList<List<NameDef>>();
         inherited.add(new ArrayList<NameDef>());
 
+        addQueue = new LinkedList<NameDef>();
 
         // no
         // set up swizzle stacks
@@ -152,5 +155,16 @@ public class SymbolTable {
             }
         }
         throw new TypeCheckException("the symbol " + name + " could not be found.");
+    }
+
+    public void putDeferred(NameDef val) {
+        addQueue.add(val);
+    }
+
+    public void flushDeferredPuts() throws TypeCheckException {
+        while (addQueue.size() != 0 ) {
+            var out = addQueue.poll();
+            put(out.getName(), out);
+        }
     }
 }
