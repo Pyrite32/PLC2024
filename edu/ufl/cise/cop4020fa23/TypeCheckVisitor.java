@@ -46,12 +46,6 @@ public class TypeCheckVisitor implements ASTVisitor {
         table = new SymbolTable();
     }
 
-    private void guardAgainst(boolean badCondition, AST tree, String why) throws TypeCheckException {
-        if (badCondition) {
-            throw new TypeCheckException(tree.firstToken().sourceLocation(), "Guard Against Failed: " + why);
-        }
-    }
-
     @Override
     public Object visitBooleanLitExpr(BooleanLitExpr booleanLitExpr, Object arg) throws PLCCompilerException {
         booleanLitExpr.setType(Type.BOOLEAN);
@@ -78,8 +72,8 @@ public class TypeCheckVisitor implements ASTVisitor {
 
     @Override
     public Object visitIdentExpr(IdentExpr identExpr, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitIdentExpr ");
-        System.out.println("Exit  visitIdentExpr ");
+        //System.out.println("Touch visitIdentExpr ");
+        //System.out.println("Exit  visitIdentExpr ");
         if (arg != null) {
             identExpr.setType((Type) arg);
             return (Type) arg;
@@ -90,7 +84,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 
     @Override
     public Object visitNameDef(NameDef nameDef, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitNameDef ");
+        //System.out.println("Touch visitNameDef ");
         
         if (arg != null) {
             var shouldDeferAdd = (boolean) arg;
@@ -113,13 +107,13 @@ public class TypeCheckVisitor implements ASTVisitor {
             nameDef.getDimension().visit(this, arg);
         }
 
-        System.out.println("Exit visitNameDef ");
+        //System.out.println("Exit visitNameDef ");
         return nameDef.getType();
     }
 
     @Override
     public Object visitProgram(Program program, Object arg) throws PLCCompilerException {
-        System.out.println("Touch VisitProgram ");
+        //System.out.println("Touch VisitProgram ");
 
         ASTRoot = program;
         ASTRoot.setType(res2Type(ASTRoot.getTypeToken()));
@@ -130,14 +124,14 @@ public class TypeCheckVisitor implements ASTVisitor {
         }
         ASTRoot.getBlock().visit(this, arg);
 
-        System.out.println("Exit  VisitProgram ");
+        //System.out.println("Exit  VisitProgram ");
         return ASTRoot;
     }
 
     // no type
     @Override
     public Object visitBlock(Block block, Object arg) throws PLCCompilerException {
-        System.out.println("Touch VisitBlock ");
+        //System.out.println("Touch VisitBlock ");
         table.enterScope();
         var code = block.getElems();
         for (var line : code) {
@@ -150,7 +144,7 @@ public class TypeCheckVisitor implements ASTVisitor {
 
     @Override
     public Object visitDeclaration(Declaration declaration, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitDeclaration ");
+        //System.out.println("Touch visitDeclaration ");
         declaration.getNameDef().visit(this, true);
 
         var varType = res2Type(declaration.firstToken());
@@ -170,13 +164,13 @@ public class TypeCheckVisitor implements ASTVisitor {
             declaration.getInitializer().setType((Type) initType);
         }
         table.flushDeferredPuts();
-        System.out.println("Exit  visitDeclaration ");
+        //System.out.println("Exit  visitDeclaration ");
         return null;
     }
 
     @Override
     public Object visitExpandedPixelExpr(ExpandedPixelExpr expandedPixelExpr, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitExpandedPixelExpr ");
+        //System.out.println("Touch visitExpandedPixelExpr ");
         var x = expandedPixelExpr.getRed();
         if (x instanceof IdentExpr) {
             expandedPixelExpr.getRed().visit(this, table.typeOf(x.firstToken().text()));
@@ -196,13 +190,24 @@ public class TypeCheckVisitor implements ASTVisitor {
             expandedPixelExpr.getBlue().visit(this, Type.INT);
         }
         expandedPixelExpr.setType(Type.PIXEL);
-        System.out.println("Exit  visitExpandedPixelExpr ");
+
+        if (expandedPixelExpr.getRed().getType() != Type.INT) {
+            throw new TypeCheckException("Pixel selector red is required to be an Int- got " + expandedPixelExpr.getRed().getType() + " instead");
+        }
+        if (expandedPixelExpr.getGreen().getType() != Type.INT) {
+            throw new TypeCheckException("Pixel selector green is required to be an Int- got " + expandedPixelExpr.getGreen().getType() + " instead");
+        }
+        if (expandedPixelExpr.getBlue().getType() != Type.INT) {
+            throw new TypeCheckException("Pixel selector blue is required to be an Int- got " + expandedPixelExpr.getBlue().getType() + " instead");
+        }
+
+        //System.out.println("Exit  visitExpandedPixelExpr ");
         return Type.PIXEL;
     }
 
     @Override
     public Object visitReturnStatement(ReturnStatement returnStatement, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitReturnStatement ");
+        //System.out.println("Touch visitReturnStatement ");
         if (returnStatement.getE() instanceof IdentExpr) {
             var type = table.typeOf(returnStatement.getE().firstToken().text());
             returnStatement.getE().visit(this, type);
@@ -214,13 +219,13 @@ public class TypeCheckVisitor implements ASTVisitor {
             throw new TypeCheckException(returnStatement.firstToken().sourceLocation(), "Return type " + finalType.toString() + " does not match the expected type " + ASTRoot.getType().toString());
         }
 
-        System.out.println("Exit  visitReturnStatement ");
+        //System.out.println("Exit  visitReturnStatement ");
         return null;
     }
 
     @Override
     public Object visitUnaryExpr(UnaryExpr unaryExpr, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitUnaryExpr ");
+        //System.out.println("Touch visitUnaryExpr ");
         var expr = unaryExpr.getExpr();
         Type exprType = null;
         if (expr instanceof IdentExpr) {
@@ -251,14 +256,14 @@ public class TypeCheckVisitor implements ASTVisitor {
                 break;
         }
 
-        System.out.println("Exit visitUnaryExpr ");
+        //System.out.println("Exit visitUnaryExpr ");
         unaryExpr.setType(finalType);
         return finalType;
     }
 
     @Override
     public Object visitWriteStatement(WriteStatement writeStatement, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitWriteStatement ");
+        //System.out.println("Touch visitWriteStatement ");
         Type type = null;
         if (writeStatement.getExpr() instanceof IdentExpr) {
             type = table.typeOf(writeStatement.getExpr().firstToken().text());
@@ -266,50 +271,61 @@ public class TypeCheckVisitor implements ASTVisitor {
         } else {
             type = (Type) writeStatement.getExpr().visit(this, arg);
         }
-        System.out.println("Exit  visitWriteStatement ");
+        //System.out.println("Exit  visitWriteStatement ");
         return type;
     }
 
     @Override
     public Object visitDimension(Dimension dimension, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitDimension ");
+        //System.out.println("Touch visitDimension ");
         dimension.getWidth().visit(this, arg);
         dimension.getHeight().visit(this, arg);
-        System.out.println("Exit  visitDimension ");
+        //System.out.println("Exit  visitDimension ");
         return null;
     }
 
     @Override
     public Object visitDoStatement(DoStatement doStatement, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitDoStatement ");
+        //System.out.println("Touch visitDoStatement ");
         var blocks = doStatement.getGuardedBlocks();
 
+        table.enterScope();
         for (var block : blocks) {
             block.visit(this, arg);
         }
-        System.out.println("Exit  visitDoStatement ");
+        table.exitScope();
+        //System.out.println("Exit  visitDoStatement ");
         return null;
     }
 
     @Override
     public Object visitAssignmentStatement(AssignmentStatement assignmentStatement, Object arg)
             throws PLCCompilerException {
-        System.out.println("Touch visitAssignmentStatement ");
+        //System.out.println("Touch visitAssignmentStatement ");
 
         assignmentStatement.getlValue().visit(this, true);
         assignmentStatement.getE().visit(this, arg);
+
+        var typeL = assignmentStatement.getlValue().getType();
+        var typeR = assignmentStatement.getE().getType();
+        if (typeL != typeR) {
+            if (typeL == Type.PIXEL && typeR == Type.INT) {}
+            else if (typeL == Type.IMAGE && (typeR == Type.PIXEL || typeR == Type.INT || typeR == Type.STRING)) {}
+            else throw new TypeCheckException(assignmentStatement.firstToken().sourceLocation(), "Failed to cast between type " + typeL + " and " + typeR);
+        }
+        
 
         // the only time swizzles are used is in assignment statements I THINK, ALTHOUGH
         // I'M NOT 100% SURE
         table.clearSwizzles();
 
-        System.out.println("Exit  visitAssignmentStatement ");
+        //System.out.println("Exit  visitAssignmentStatement ");
         return null;
     }
 
     @Override
     public Object visitBinaryExpr(BinaryExpr binaryExpr, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitBinaryExpr ");
+        //System.out.println("Touch visitBinaryExpr ");
 
         // only adding works
         var left = binaryExpr.getLeftExpr();
@@ -449,29 +465,29 @@ public class TypeCheckVisitor implements ASTVisitor {
         }
 
         
-        System.out.println("Exit  visitBinaryExpr ");
+        //System.out.println("Exit  visitBinaryExpr ");
         binaryExpr.setType(finalType);
         return finalType;
     }
 
     @Override
     public Object visitBlockStatement(StatementBlock statementBlock, Object arg) throws PLCCompilerException {
-        System.out.println("Touch VisitBlockStatement ");
+        //System.out.println("Touch VisitBlockStatement ");
         statementBlock.getBlock().visit(this, arg);
-        System.out.println("Exit  VisitBlockStatement ");
+        //System.out.println("Exit  VisitBlockStatement ");
         return null;
     }
 
     @Override
     public Object visitChannelSelector(ChannelSelector channelSelector, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitChannelSelector ");
-        System.out.println("Exit  visitChannelSelector ");
+        //System.out.println("Touch visitChannelSelector ");
+        //System.out.println("Exit  visitChannelSelector ");
         return null;
     }
 
     @Override
     public Object visitConditionalExpr(ConditionalExpr conditionalExpr, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitConditionalExpr ");
+        //System.out.println("Touch visitConditionalExpr ");
 
         var condition = conditionalExpr.getGuardExpr();
 
@@ -517,13 +533,13 @@ public class TypeCheckVisitor implements ASTVisitor {
                     "Not all code paths return the same type.");
         }
 
-        System.out.println("Exit visitConditionalExpr ");
+        //System.out.println("Exit visitConditionalExpr ");
         return trueType;
     }
 
     @Override
     public Object visitPixelSelector(PixelSelector pixelSelector, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitPixelSelector ");
+        //System.out.println("Touch visitPixelSelector ");
 
         // don't know if this is 100 percent true -- why not just addVec2Swizzles()?
         var x = pixelSelector.xExpr();
@@ -550,13 +566,19 @@ public class TypeCheckVisitor implements ASTVisitor {
         } else {
             pixelSelector.yExpr().visit(this, Type.INT);
         }
-        System.out.println("Exit  visitPixelSelector ");
+        //System.out.println("Exit  visitPixelSelector ");
+        if (pixelSelector.xExpr().getType() != Type.INT) {
+            throw new TypeCheckException("Pixel selector X is required to be an Int- got " + pixelSelector.xExpr().getType() + " instead");
+        }
+        if (pixelSelector.yExpr().getType() != Type.INT) {
+            throw new TypeCheckException("Pixel selector Y is required to be an Int- got " + pixelSelector.yExpr().getType() + " instead");
+        }
         return Type.PIXEL;
     }
 
     @Override
     public Object visitPostfixExpr(PostfixExpr postfixExpr, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitPostfixExpr ");
+        //System.out.println("Touch visitPostfixExpr ");
         if (postfixExpr.pixel() != null) {
             postfixExpr.setType(Type.PIXEL);
             postfixExpr.pixel().visit(this, arg);
@@ -573,13 +595,13 @@ public class TypeCheckVisitor implements ASTVisitor {
             postfixExpr.primary().visit(this, arg);
         }
 
-        System.out.println("Exit  visitPostfixExpr ");
+        //System.out.println("Exit  visitPostfixExpr ");
         return postfixExpr.getType();
     }
 
     @Override
     public Object visitGuardedBlock(GuardedBlock guardedBlock, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitGuardedBlock ");
+        //System.out.println("Touch visitGuardedBlock ");
 
         Type primaryType = null;
         if (guardedBlock.getGuard() instanceof IdentExpr) {
@@ -595,22 +617,34 @@ public class TypeCheckVisitor implements ASTVisitor {
         guardedBlock.getBlock().visit(this, arg);
         table.exitScope();
 
-        System.out.println("Exit  visitGuardedBlock ");
+        //System.out.println("Exit  visitGuardedBlock ");
         return null;
     }
 
     @Override
     public Object visitIfStatement(IfStatement ifStatement, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitIfStatement ");
-        System.out.println("Exit  visitIfStatement ");
+         //System.out.println("Touch visitDoStatement ");
+        var blocks = ifStatement.getGuardedBlocks();
+
+        table.enterScope();
+        for (var block : blocks) {
+            block.visit(this, arg);
+        }
+        table.exitScope();
+        //System.out.println("Exit  visitDoStatement ");
         return null;
     }
 
     @Override
     public Object visitLValue(LValue lValue, Object arg) throws PLCCompilerException {
-        System.out.println("Touch visitLValue ");
+        //System.out.println("Touch visitLValue ");
 
         // the only time swizzles are able to be used.
+
+        Type finalType = null;
+        if (table.has(lValue.getName())) {
+            finalType = table.typeOf(lValue.getName());
+        }
 
         if (lValue.getChannelSelector() != null) {
             lValue.getChannelSelector().visit(this, arg);
@@ -622,8 +656,10 @@ public class TypeCheckVisitor implements ASTVisitor {
             lValue.getPixelSelector().visit(this, true);
             lValue.setType(Type.PIXEL);
         }
-        System.out.println("Exit  visitLValue ");
-        return null;
+
+        lValue.setType(finalType);
+        //System.out.println("Exit  visitLValue ");
+        return finalType;
     }
 
     private Type res2Type(IToken res) throws TypeCheckException {

@@ -87,7 +87,12 @@ public class SymbolTable {
     }
 
     public boolean has(String key) {
-        return current().get(key) != null;
+        try {
+            find(key);    
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
     }
 
     public void enterScope() {
