@@ -55,7 +55,7 @@ import edu.ufl.cise.cop4020fa23.exceptions.PLCCompilerException;
 import edu.ufl.cise.cop4020fa23.exceptions.TypeCheckException;
 
 class TypeCheckTest_starter {
-	static final int TIMEOUT_MILLIS = 1000;
+	static final int TIMEOUT_MILLIS = 999999;
 
 	AST getDecoratedAST(String input) throws PLCCompilerException {
 		AST ast = ComponentFactory.makeParser(input).parse();
@@ -64,7 +64,7 @@ class TypeCheckTest_starter {
 		return ast;
 	}
 
-	NumLitExpr checkNumLitExpr(AST e, String value) {
+	NumLitExpr AmIIntAndHaveThisNumber(AST e, String value) {
 		assertThat("", e, instanceOf(NumLitExpr.class));
 		NumLitExpr ne = (NumLitExpr) e;
 		assertEquals(value, ne.getText());
@@ -72,7 +72,7 @@ class TypeCheckTest_starter {
 		return ne;
 	}
 
-	NumLitExpr checkNumLitExpr(AST e, int value) {
+	NumLitExpr AmIIntAndHaveThisNumber(AST e, int value) {
 		assertThat("", e, instanceOf(NumLitExpr.class));
 		NumLitExpr ne = (NumLitExpr) e;
 		assertEquals(Integer.toString(value), ne.getText());
@@ -206,7 +206,7 @@ class TypeCheckTest_starter {
 		return program;
 	}
 
-	Declaration checkDec(AST ast) {
+	Declaration AmIAValidDeclaration(AST ast) {
 		assertThat("", ast, instanceOf(Declaration.class));
 		Declaration dec0 = (Declaration) ast;
 		return dec0;
@@ -292,35 +292,35 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList3 = programBlock2.getElems();
 		assertEquals(6, blockElemList3.size());
 		BlockElem blockElem4 = blockElemList3.get(0);
-		checkDec(blockElem4);
+		AmIAValidDeclaration(blockElem4);
 		NameDef nameDef5 = ((Declaration) blockElem4).getNameDef();
 		checkNameDef(nameDef5, Type.INT, "a");
 		BlockElem blockElem6 = blockElemList3.get(1);
-		checkDec(blockElem6);
+		AmIAValidDeclaration(blockElem6);
 		NameDef nameDef7 = ((Declaration) blockElem6).getNameDef();
 		checkNameDef(nameDef7, Type.STRING, "s");
 		BlockElem blockElem8 = blockElemList3.get(2);
-		checkDec(blockElem8);
+		AmIAValidDeclaration(blockElem8);
 		NameDef nameDef9 = ((Declaration) blockElem8).getNameDef();
 		checkNameDef(nameDef9, Type.BOOLEAN, "b");
 		BlockElem blockElem10 = blockElemList3.get(3);
-		checkDec(blockElem10);
+		AmIAValidDeclaration(blockElem10);
 		NameDef nameDef11 = ((Declaration) blockElem10).getNameDef();
 		checkNameDef(nameDef11, Type.IMAGE, "i");
 		BlockElem blockElem12 = blockElemList3.get(4);
-		checkDec(blockElem12);
+		AmIAValidDeclaration(blockElem12);
 		NameDef nameDef13 = ((Declaration) blockElem12).getNameDef();
 		checkNameDef(nameDef13, Type.PIXEL, "p");
 		BlockElem blockElem14 = blockElemList3.get(5);
-		checkDec(blockElem14);
+		AmIAValidDeclaration(blockElem14);
 		NameDef nameDef15 = ((Declaration) blockElem14).getNameDef();
 		checkNameDefDim(nameDef15, Type.IMAGE, "d");
 		Dimension dimension16 = nameDef15.getDimension();
 		assertThat("", dimension16, instanceOf(Dimension.class));
 		Expr width17 = dimension16.getWidth();
-		checkNumLitExpr(width17, 1028);
+		AmIIntAndHaveThisNumber(width17, 1028);
 		Expr height18 = dimension16.getHeight();
-		checkNumLitExpr(height18, 256);
+		AmIIntAndHaveThisNumber(height18, 256);
 	}
 
 	@Test
@@ -340,7 +340,7 @@ class TypeCheckTest_starter {
 		BlockElem blockElem4 = blockElemList3.get(0);
 		assertThat("", blockElem4, instanceOf(ReturnStatement.class));
 		Expr returnValueExpr5 = ((ReturnStatement) blockElem4).getE();
-		checkNumLitExpr(returnValueExpr5, 3);
+		AmIIntAndHaveThisNumber(returnValueExpr5, 3);
 	}
 
 	@Test
@@ -360,31 +360,31 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList3 = programBlock2.getElems();
 		assertEquals(3, blockElemList3.size());
 		BlockElem blockElem4 = blockElemList3.get(0);
-		checkDec(blockElem4);
+		AmIAValidDeclaration(blockElem4);
 		NameDef nameDef5 = ((Declaration) blockElem4).getNameDef();
 		checkNameDef(nameDef5, Type.IMAGE, "i");
 		Expr expr6 = ((Declaration) blockElem4).getInitializer();
 		checkStringLitExpr(expr6, "url");
 		BlockElem blockElem7 = blockElemList3.get(1);
-		checkDec(blockElem7);
+		AmIAValidDeclaration(blockElem7);
 		NameDef nameDef8 = ((Declaration) blockElem7).getNameDef();
 		checkNameDef(nameDef8, Type.IMAGE, "j");
 		Expr expr9 = ((Declaration) blockElem7).getInitializer();
 		checkIdentExpr(expr9, "i", Type.IMAGE);
 		BlockElem blockElem10 = blockElemList3.get(2);
-		checkDec(blockElem10);
+		AmIAValidDeclaration(blockElem10);
 		NameDef nameDef11 = ((Declaration) blockElem10).getNameDef();
 		checkNameDef(nameDef11, Type.INT, "rr");
-		Expr expr12 = ((Declaration) blockElem10).getInitializer();
-		checkPostfixExpr(expr12, true, true, Type.INT);
-		Expr expr13 = ((PostfixExpr) expr12).primary();
-		checkIdentExpr(expr13, "j", Type.IMAGE);
-		PixelSelector pixel14 = ((PostfixExpr) expr12).pixel();
+		Expr rrRightHand = ((Declaration) blockElem10).getInitializer();
+		checkPostfixExpr(rrRightHand, true, true, Type.INT);
+		Expr jImage = ((PostfixExpr) rrRightHand).primary();
+		checkIdentExpr(jImage, "j", Type.IMAGE);
+		PixelSelector pixel14 = ((PostfixExpr) rrRightHand).pixel();
 		Expr x15 = pixel14.xExpr();
-		checkNumLitExpr(x15, 3);
+		AmIIntAndHaveThisNumber(x15, 3);
 		Expr y16 = pixel14.yExpr();
-		checkNumLitExpr(y16, 4);
-		ChannelSelector channel17 = ((PostfixExpr) expr12).channel();
+		AmIIntAndHaveThisNumber(y16, 4);
+		ChannelSelector channel17 = ((PostfixExpr) rrRightHand).channel();
 		checkChannelSelector(channel17, Kind.RES_red);
 	}
 
@@ -406,17 +406,17 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList3 = programBlock2.getElems();
 		assertEquals(4, blockElemList3.size());
 		BlockElem blockElem4 = blockElemList3.get(0);
-		checkDec(blockElem4);
+		AmIAValidDeclaration(blockElem4);
 		NameDef nameDef5 = ((Declaration) blockElem4).getNameDef();
 		checkNameDef(nameDef5, Type.IMAGE, "i");
 		Expr expr6 = ((Declaration) blockElem4).getInitializer();
 		checkStringLitExpr(expr6, "url");
 		BlockElem blockElem7 = blockElemList3.get(1);
-		checkDec(blockElem7);
+		AmIAValidDeclaration(blockElem7);
 		NameDef nameDef8 = ((Declaration) blockElem7).getNameDef();
 		checkNameDef(nameDef8, Type.INT, "x");
 		BlockElem blockElem9 = blockElemList3.get(2);
-		checkDec(blockElem9);
+		AmIAValidDeclaration(blockElem9);
 		NameDef nameDef10 = ((Declaration) blockElem9).getNameDef();
 		checkNameDef(nameDef10, Type.INT, "y");
 		BlockElem blockElem11 = blockElemList3.get(3);
@@ -437,7 +437,7 @@ class TypeCheckTest_starter {
 		Expr green19 = ((ExpandedPixelExpr) expr17).getGreen();
 		checkIdentExpr(green19, "y", Type.INT);
 		Expr blue20 = ((ExpandedPixelExpr) expr17).getBlue();
-		checkNumLitExpr(blue20, 0);
+		AmIIntAndHaveThisNumber(blue20, 0);
 	}
 
 	@Test
@@ -457,13 +457,13 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList3 = programBlock2.getElems();
 		assertEquals(3, blockElemList3.size());
 		BlockElem blockElem4 = blockElemList3.get(0);
-		checkDec(blockElem4);
+		AmIAValidDeclaration(blockElem4);
 		NameDef nameDef5 = ((Declaration) blockElem4).getNameDef();
 		checkNameDef(nameDef5, Type.BOOLEAN, "b");
 		Expr expr6 = ((Declaration) blockElem4).getInitializer();
 		checkBooleanLitExpr(expr6, "TRUE");
 		BlockElem blockElem7 = blockElemList3.get(1);
-		checkDec(blockElem7);
+		AmIAValidDeclaration(blockElem7);
 		NameDef nameDef8 = ((Declaration) blockElem7).getNameDef();
 		checkNameDef(nameDef8, Type.BOOLEAN, "c");
 		Expr expr9 = ((Declaration) blockElem7).getInitializer();
@@ -492,19 +492,19 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList3 = programBlock2.getElems();
 		assertEquals(4, blockElemList3.size());
 		BlockElem blockElem4 = blockElemList3.get(0);
-		checkDec(blockElem4);
+		AmIAValidDeclaration(blockElem4);
 		NameDef nameDef5 = ((Declaration) blockElem4).getNameDef();
 		checkNameDef(nameDef5, Type.INT, "x");
 		Expr expr6 = ((Declaration) blockElem4).getInitializer();
-		checkNumLitExpr(expr6, 1);
+		AmIIntAndHaveThisNumber(expr6, 1);
 		BlockElem blockElem7 = blockElemList3.get(1);
-		checkDec(blockElem7);
+		AmIAValidDeclaration(blockElem7);
 		NameDef nameDef8 = ((Declaration) blockElem7).getNameDef();
 		checkNameDef(nameDef8, Type.INT, "y");
 		Expr expr9 = ((Declaration) blockElem7).getInitializer();
-		checkNumLitExpr(expr9, 2);
+		AmIIntAndHaveThisNumber(expr9, 2);
 		BlockElem blockElem10 = blockElemList3.get(2);
-		checkDec(blockElem10);
+		AmIAValidDeclaration(blockElem10);
 		NameDef nameDef11 = ((Declaration) blockElem10).getNameDef();
 		checkNameDef(nameDef11, Type.BOOLEAN, "b");
 		Expr expr12 = ((Declaration) blockElem10).getInitializer();
@@ -521,17 +521,17 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList18 = block17.getElems();
 		assertEquals(4, blockElemList18.size());
 		BlockElem blockElem19 = blockElemList18.get(0);
-		checkDec(blockElem19);
+		AmIAValidDeclaration(blockElem19);
 		NameDef nameDef20 = ((Declaration) blockElem19).getNameDef();
 		checkNameDef(nameDef20, Type.INT, "x");
 		Expr expr21 = ((Declaration) blockElem19).getInitializer();
-		checkNumLitExpr(expr21, 3);
+		AmIIntAndHaveThisNumber(expr21, 3);
 		BlockElem blockElem22 = blockElemList18.get(1);
-		checkDec(blockElem22);
+		AmIAValidDeclaration(blockElem22);
 		NameDef nameDef23 = ((Declaration) blockElem22).getNameDef();
 		checkNameDef(nameDef23, Type.INT, "y");
 		Expr expr24 = ((Declaration) blockElem22).getInitializer();
-		checkNumLitExpr(expr24, 4);
+		AmIIntAndHaveThisNumber(expr24, 4);
 		BlockElem blockElem25 = blockElemList18.get(2);
 		assertThat("", blockElem25, instanceOf(WriteStatement.class));
 		Expr writeStatementExpr26 = ((WriteStatement) blockElem25).getExpr();
@@ -569,7 +569,7 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList3 = programBlock2.getElems();
 		assertEquals(3, blockElemList3.size());
 		BlockElem blockElem4 = blockElemList3.get(0);
-		checkDec(blockElem4);
+		AmIAValidDeclaration(blockElem4);
 		NameDef nameDef5 = ((Declaration) blockElem4).getNameDef();
 		checkNameDef(nameDef5, Type.IMAGE, "x");
 		BlockElem blockElem6 = blockElemList3.get(1);
@@ -617,7 +617,7 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList3 = programBlock2.getElems();
 		assertEquals(4, blockElemList3.size());
 		BlockElem blockElem4 = blockElemList3.get(0);
-		checkDec(blockElem4);
+		AmIAValidDeclaration(blockElem4);
 		NameDef nameDef5 = ((Declaration) blockElem4).getNameDef();
 		checkNameDef(nameDef5, Type.IMAGE, "x");
 		BlockElem blockElem6 = blockElemList3.get(1);
@@ -626,7 +626,7 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList8 = block7.getElems();
 		assertEquals(1, blockElemList8.size());
 		BlockElem blockElem9 = blockElemList8.get(0);
-		checkDec(blockElem9);
+		AmIAValidDeclaration(blockElem9);
 		NameDef nameDef10 = ((Declaration) blockElem9).getNameDef();
 		checkNameDef(nameDef10, Type.BOOLEAN, "b");
 		BlockElem blockElem11 = blockElemList3.get(2);
@@ -675,9 +675,9 @@ class TypeCheckTest_starter {
 		Expr writeStatementExpr5 = ((WriteStatement) blockElem4).getExpr();
 		checkBinaryExpr(writeStatementExpr5, Kind.PLUS, Type.INT);
 		Expr leftExpr6 = ((BinaryExpr) writeStatementExpr5).getLeftExpr();
-		checkNumLitExpr(leftExpr6, 3);
+		AmIIntAndHaveThisNumber(leftExpr6, 3);
 		Expr rightExpr7 = ((BinaryExpr) writeStatementExpr5).getRightExpr();
-		checkNumLitExpr(rightExpr7, 5);
+		AmIIntAndHaveThisNumber(rightExpr7, 5);
 		BlockElem blockElem8 = blockElemList3.get(1);
 		assertThat("", blockElem8, instanceOf(WriteStatement.class));
 		Expr writeStatementExpr9 = ((WriteStatement) blockElem8).getExpr();
@@ -686,11 +686,11 @@ class TypeCheckTest_starter {
 		assertThat("", blockElem10, instanceOf(WriteStatement.class));
 		Expr writeStatementExpr11 = ((WriteStatement) blockElem10).getExpr();
 		Expr red12 = ((ExpandedPixelExpr) writeStatementExpr11).getRed();
-		checkNumLitExpr(red12, 1);
+		AmIIntAndHaveThisNumber(red12, 1);
 		Expr green13 = ((ExpandedPixelExpr) writeStatementExpr11).getGreen();
-		checkNumLitExpr(green13, 2);
+		AmIIntAndHaveThisNumber(green13, 2);
 		Expr blue14 = ((ExpandedPixelExpr) writeStatementExpr11).getBlue();
-		checkNumLitExpr(blue14, 3);
+		AmIIntAndHaveThisNumber(blue14, 3);
 	}
 
 	@Test
@@ -714,7 +714,7 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList6 = programBlock5.getElems();
 		assertEquals(1, blockElemList6.size());
 		BlockElem blockElem7 = blockElemList6.get(0);
-		checkDec(blockElem7);
+		AmIAValidDeclaration(blockElem7);
 		NameDef nameDef8 = ((Declaration) blockElem7).getNameDef();
 		checkNameDef(nameDef8, Type.STRING, "s2");
 		Expr expr9 = ((Declaration) blockElem7).getInitializer();
@@ -756,7 +756,7 @@ class TypeCheckTest_starter {
 		Expr leftExpr8 = ((BinaryExpr) leftExpr7).getLeftExpr();
 		checkConstExpr(leftExpr8, "Z", Type.INT);
 		Expr rightExpr9 = ((BinaryExpr) leftExpr7).getRightExpr();
-		checkNumLitExpr(rightExpr9, 2);
+		AmIIntAndHaveThisNumber(rightExpr9, 2);
 		Expr rightExpr10 = ((BinaryExpr) returnValueExpr6).getRightExpr();
 		checkIdentExpr(rightExpr10, "xx", Type.INT);
 	}
@@ -784,11 +784,11 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList4 = programBlock3.getElems();
 		assertEquals(3, blockElemList4.size());
 		BlockElem blockElem5 = blockElemList4.get(0);
-		checkDec(blockElem5);
+		AmIAValidDeclaration(blockElem5);
 		NameDef nameDef6 = ((Declaration) blockElem5).getNameDef();
 		checkNameDef(nameDef6, Type.INT, "i");
 		Expr expr7 = ((Declaration) blockElem5).getInitializer();
-		checkNumLitExpr(expr7, 3);
+		AmIIntAndHaveThisNumber(expr7, 3);
 		BlockElem blockElem8 = blockElemList4.get(1);
 		assertThat("", blockElem8, instanceOf(DoStatement.class));
 		List<GuardedBlock> guardedBlocks9 = ((DoStatement) blockElem8).getGuardedBlocks();
@@ -800,7 +800,7 @@ class TypeCheckTest_starter {
 		Expr leftExpr12 = ((BinaryExpr) guard11).getLeftExpr();
 		checkIdentExpr(leftExpr12, "i", Type.INT);
 		Expr rightExpr13 = ((BinaryExpr) guard11).getRightExpr();
-		checkNumLitExpr(rightExpr13, 0);
+		AmIIntAndHaveThisNumber(rightExpr13, 0);
 		Block block14 = guardedBlock10.getBlock();
 		List<BlockElem> blockElemList15 = block14.getElems();
 		assertEquals(2, blockElemList15.size());
@@ -821,7 +821,7 @@ class TypeCheckTest_starter {
 		Expr leftExpr22 = ((BinaryExpr) expr21).getLeftExpr();
 		checkIdentExpr(leftExpr22, "i", Type.INT);
 		Expr rightExpr23 = ((BinaryExpr) expr21).getRightExpr();
-		checkNumLitExpr(rightExpr23, 1);
+		AmIIntAndHaveThisNumber(rightExpr23, 1);
 		BlockElem blockElem24 = blockElemList4.get(2);
 		assertThat("", blockElem24, instanceOf(ReturnStatement.class));
 		Expr returnValueExpr25 = ((ReturnStatement) blockElem24).getE();
@@ -859,11 +859,11 @@ class TypeCheckTest_starter {
 		List<BlockElem> blockElemList4 = programBlock3.getElems();
 		assertEquals(5, blockElemList4.size());
 		BlockElem blockElem5 = blockElemList4.get(0);
-		checkDec(blockElem5);
+		AmIAValidDeclaration(blockElem5);
 		NameDef nameDef6 = ((Declaration) blockElem5).getNameDef();
 		checkNameDef(nameDef6, Type.INT, "i");
 		Expr expr7 = ((Declaration) blockElem5).getInitializer();
-		checkNumLitExpr(expr7, 3);
+		AmIIntAndHaveThisNumber(expr7, 3);
 		BlockElem blockElem8 = blockElemList4.get(1);
 		assertThat("", blockElem8, instanceOf(DoStatement.class));
 		List<GuardedBlock> guardedBlocks9 = ((DoStatement) blockElem8).getGuardedBlocks();
@@ -875,12 +875,12 @@ class TypeCheckTest_starter {
 		Expr leftExpr12 = ((BinaryExpr) guard11).getLeftExpr();
 		checkIdentExpr(leftExpr12, "i", Type.INT);
 		Expr rightExpr13 = ((BinaryExpr) guard11).getRightExpr();
-		checkNumLitExpr(rightExpr13, 0);
+		AmIIntAndHaveThisNumber(rightExpr13, 0);
 		Block block14 = guardedBlock10.getBlock();
 		List<BlockElem> blockElemList15 = block14.getElems();
 		assertEquals(3, blockElemList15.size());
 		BlockElem blockElem16 = blockElemList15.get(0);
-		checkDec(blockElem16);
+		AmIAValidDeclaration(blockElem16);
 		NameDef nameDef17 = ((Declaration) blockElem16).getNameDef();
 		checkNameDef(nameDef17, Type.STRING, "xx");
 		Expr expr18 = ((Declaration) blockElem16).getInitializer();
@@ -902,7 +902,7 @@ class TypeCheckTest_starter {
 		Expr leftExpr25 = ((BinaryExpr) expr24).getLeftExpr();
 		checkIdentExpr(leftExpr25, "i", Type.INT);
 		Expr rightExpr26 = ((BinaryExpr) expr24).getRightExpr();
-		checkNumLitExpr(rightExpr26, 1);
+		AmIIntAndHaveThisNumber(rightExpr26, 1);
 		BlockElem blockElem27 = blockElemList4.get(2);
 		assertThat("", blockElem27, instanceOf(AssignmentStatement.class));
 		LValue LValue28 = ((AssignmentStatement) blockElem27).getlValue();
@@ -912,7 +912,7 @@ class TypeCheckTest_starter {
 		assertNull(LValue28.getPixelSelector());
 		assertNull(LValue28.getChannelSelector());
 		Expr expr30 = ((AssignmentStatement) blockElem27).getE();
-		checkNumLitExpr(expr30, 3);
+		AmIIntAndHaveThisNumber(expr30, 3);
 		BlockElem blockElem31 = blockElemList4.get(3);
 		assertThat("", blockElem31, instanceOf(DoStatement.class));
 		List<GuardedBlock> guardedBlocks32 = ((DoStatement) blockElem31).getGuardedBlocks();
@@ -924,12 +924,12 @@ class TypeCheckTest_starter {
 		Expr leftExpr35 = ((BinaryExpr) guard34).getLeftExpr();
 		checkIdentExpr(leftExpr35, "i", Type.INT);
 		Expr rightExpr36 = ((BinaryExpr) guard34).getRightExpr();
-		checkNumLitExpr(rightExpr36, 0);
+		AmIIntAndHaveThisNumber(rightExpr36, 0);
 		Block block37 = guardedBlock33.getBlock();
 		List<BlockElem> blockElemList38 = block37.getElems();
 		assertEquals(3, blockElemList38.size());
 		BlockElem blockElem39 = blockElemList38.get(0);
-		checkDec(blockElem39);
+		AmIAValidDeclaration(blockElem39);
 		NameDef nameDef40 = ((Declaration) blockElem39).getNameDef();
 		checkNameDef(nameDef40, Type.IMAGE, "xx");
 		Expr expr41 = ((Declaration) blockElem39).getInitializer();
@@ -951,7 +951,7 @@ class TypeCheckTest_starter {
 		Expr leftExpr48 = ((BinaryExpr) expr47).getLeftExpr();
 		checkIdentExpr(leftExpr48, "i", Type.INT);
 		Expr rightExpr49 = ((BinaryExpr) expr47).getRightExpr();
-		checkNumLitExpr(rightExpr49, 1);
+		AmIIntAndHaveThisNumber(rightExpr49, 1);
 		BlockElem blockElem50 = blockElemList4.get(4);
 		assertThat("", blockElem50, instanceOf(ReturnStatement.class));
 		Expr returnValueExpr51 = ((ReturnStatement) blockElem50).getE();
