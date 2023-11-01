@@ -229,7 +229,7 @@ class CodeGenTest_starter {
 		String source = """
 				int a(int i)
 				<:
-				  int r = ? i>0 -> i , -i;
+				  int r = ? i > 0 -> i , -i;
 				  ^r;
 				  :>
 				  """;

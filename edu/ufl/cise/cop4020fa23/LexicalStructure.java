@@ -2,19 +2,20 @@ package edu.ufl.cise.cop4020fa23;
 
 import java.util.HashMap;
 
+import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
+
 public final class LexicalStructure {
 
     private static HashMap<String, Kind> alphabeticLiterals;
 
-	// only one length
-	private static HashMap<String, Kind> oneCharLiterals;
+    // only one length
+    private static HashMap<String, Kind> oneCharLiterals;
 
-	// only two length
-	private static HashMap<String, Kind> twoCharLiterals;
-
+    // only two length
+    private static HashMap<String, Kind> twoCharLiterals;
 
     public static final void initializeLexicalStructure() {
-    
+
         alphabeticLiterals = new HashMap<String, Kind>();
         oneCharLiterals = new HashMap<String, Kind>();
         twoCharLiterals = new HashMap<String, Kind>();
@@ -82,27 +83,27 @@ public final class LexicalStructure {
     }
 
     public static final String[] BooleanLit = {
-        "TRUE",
-        "FALSE"
+            "TRUE",
+            "FALSE"
     };
     public static final String[] Constants = {
-        "Z",
-        "BLACK",
-        "BLUE",
-        "CYAN",
-        "DARK_GRAY",
-        "GRAY",
-        "GREEN",
-        "LIGHT_GRAY",
-        "MAGENTA",
-        "ORANGE",
-        "PINK",
-        "RED",
-        "WHITE",
-        "YELLOW"
+            "Z",
+            "BLACK",
+            "BLUE",
+            "CYAN",
+            "DARK_GRAY",
+            "GRAY",
+            "GREEN",
+            "LIGHT_GRAY",
+            "MAGENTA",
+            "ORANGE",
+            "PINK",
+            "RED",
+            "WHITE",
+            "YELLOW"
     };
-    	// any length
-	
+    // any length
+
     public static final String RES_Image = "image";
     public static final String RES_Pixel = "pixel";
     public static final String RES_Int = "int";
@@ -119,7 +120,7 @@ public final class LexicalStructure {
     public static final String RES_Red = "red";
     public static final String RES_Green = "green";
     public static final String RES_Blue = "blue";
-    
+
     public static final String Comma = ",";
     public static final String Semi = ";";
     public static final String Question = "?";
@@ -140,7 +141,7 @@ public final class LexicalStructure {
     public static final String Div = "/";
     public static final String Mod = "%";
     public static final String Return = "^";
-    
+
     public static final String Eq = "==";
     public static final String Le = "<=";
     public static final String Ge = ">=";
@@ -163,10 +164,10 @@ public final class LexicalStructure {
     public static final Kind getKindFromExact(String string) {
         Kind result = alphabeticLiterals.get(string);
         if (result != null)
-        return result;
+            return result;
         result = oneCharLiterals.get(string);
         if (result != null)
-        return result;
+            return result;
         result = twoCharLiterals.get(string);
         return result;
     }
@@ -180,7 +181,7 @@ public final class LexicalStructure {
     }
 
     public static final boolean isUnprintable(char character) {
-        return (int)character < 32;
+        return (int) character < 32;
     }
 
     public static final boolean isCommentChar(char character) {
@@ -201,5 +202,106 @@ public final class LexicalStructure {
 
     public static final boolean isOtherChar(char character) {
         return !Character.isAlphabetic(character) && !Character.isDigit(character);
+    }
+
+    public static String kind2Char(Kind kind) throws LexicalException {
+        switch (kind) {
+            case LE:
+                return LexicalStructure.Le;
+            case BANG:
+                return LexicalStructure.Bang;
+            case LPAREN:
+                return LexicalStructure.LParen;
+            case LSQUARE:
+                return LexicalStructure.LSquare;
+            case LT:
+                return LexicalStructure.LT;
+            case GT:
+                return LexicalStructure.GT;
+            case GE:
+                return LexicalStructure.GT;
+            case MINUS:
+                return LexicalStructure.Minus;
+            case MOD:
+                return LexicalStructure.Mod;
+            case OR:
+                return LexicalStructure.Or;
+            case PLUS:
+                return LexicalStructure.Plus;
+            case QUESTION:
+                return LexicalStructure.Question;
+            case RARROW:
+                return LexicalStructure.RArrow;
+            case RES_blue:
+                return LexicalStructure.RES_Blue;
+            case RES_boolean:
+                return LexicalStructure.RES_Boolean;
+            case RES_do:
+                return LexicalStructure.RES_Do;
+            case RES_fi:
+                return LexicalStructure.RES_Fi;
+            case RES_green:
+                return LexicalStructure.RES_Green;
+            case RES_height:
+                return LexicalStructure.RES_Height;
+            case RES_if:
+                return LexicalStructure.RES_If;
+            case RES_image:
+                return LexicalStructure.RES_Image;
+            case RES_int:
+                return LexicalStructure.RES_Int;
+            case RES_nil:
+                return "null";
+            case RES_od:
+                return LexicalStructure.RES_Od;
+            case RES_pixel:
+                return LexicalStructure.RES_Pixel;
+            case RES_red:
+                return LexicalStructure.RES_Red;
+            case RES_string:
+                return LexicalStructure.RES_String;
+            case RES_void:
+                return LexicalStructure.RES_Void;
+            case RES_width:
+                return LexicalStructure.RES_Width;
+            case RES_write:
+                return LexicalStructure.RES_Height;
+            case RETURN:
+                return LexicalStructure.Return;
+            case RPAREN:
+                return LexicalStructure.RParen;
+            case RSQUARE:
+                return LexicalStructure.RSquare;
+            case SEMI:
+                return LexicalStructure.Semi;
+            case TIMES:
+                return LexicalStructure.Times;
+            case AND:
+                return LexicalStructure.And;
+            case ASSIGN:
+                return LexicalStructure.Assign;
+            case BITAND:
+                return LexicalStructure.BitAnd;
+            case BITOR:
+                return LexicalStructure.BitOr;
+            case BLOCK_CLOSE:
+                return LexicalStructure.BlockClose;
+            case BLOCK_OPEN:
+                return LexicalStructure.BlockOpen;
+            case BOX:
+                return LexicalStructure.Box;
+            case COLON:
+                return LexicalStructure.Colon;
+            case COMMA:
+                return LexicalStructure.Comma;
+            case DIV:
+                return LexicalStructure.Div;
+            case EQ:
+                return LexicalStructure.Eq;
+            case EXP:
+                return LexicalStructure.Exp;
+            default:
+                throw new LexicalException("invalid type provided for string conversion-- do it yourself!");
+        }
     }
 }

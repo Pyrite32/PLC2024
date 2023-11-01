@@ -322,7 +322,13 @@ public class TypeCheckVisitor implements ASTVisitor {
         // System.out.println("Touch visitAssignmentStatement ");
 
         assignmentStatement.getlValue().visit(this, true);
-        assignmentStatement.getE().visit(this, arg);
+        if (assignmentStatement.getE() instanceof IdentExpr) {
+            var type = table.typeOf(assignmentStatement.getE().firstToken().text());
+            assignmentStatement.getE().visit(this, type);
+        }
+        else {
+            assignmentStatement.getE().visit(this, arg);
+        }
 
         var typeL = assignmentStatement.getlValue().getType();
         var typeR = assignmentStatement.getE().getType();
