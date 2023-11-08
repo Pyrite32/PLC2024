@@ -30,6 +30,11 @@ class CodeGenTest_starter {
 		show("----------------------------------------------");
 	}
 
+	@Test
+	void testConsoleIO() throws Exception{
+		ConsoleIO.write("Go Gators");
+	}
+
 	// makes it easy to turn output on and off (and less typing than System.out.println)
 	static final boolean VERBOSE = true;
 
@@ -61,6 +66,8 @@ class CodeGenTest_starter {
 	
 	@Test
 	void cg0() throws Exception {
+		String pathToJar = ConsoleIO.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+System.out.println(pathToJar);
 		String input = "void f()<::>";
 		Object result = PLCLangExec.runCode(packageName, input);
 		show(result);

@@ -12,6 +12,8 @@ package edu.ufl.cise.cop4020fa23.DynamicJavaCompileAndExecute;
 
 import java.lang.reflect.Method;
 
+import edu.ufl.cise.cop4020fa23.runtime.ConsoleIO;
+
 public class DynamicClassLoader extends ClassLoader {
 	public DynamicClassLoader(ClassLoader parent) {
 		super(parent);

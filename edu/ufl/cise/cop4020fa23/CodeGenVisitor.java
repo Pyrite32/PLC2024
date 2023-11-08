@@ -31,9 +31,6 @@ import edu.ufl.cise.cop4020fa23.ast.WriteStatement;
 import edu.ufl.cise.cop4020fa23.exceptions.PLCCompilerException;
 import edu.ufl.cise.cop4020fa23.exceptions.TypeCheckException;
 import edu.ufl.cise.cop4020fa23.exceptions.CodeGenException;
-import edu.ufl.cise.cop4020fa23.runtime.ConsoleIO;
-
-
 
 import java.util.HashMap;
 import java.util.UUID;
@@ -263,7 +260,7 @@ public class CodeGenVisitor implements ASTVisitor {
 
         // emit package
         emitl("package", (String) arg, LexicalStructure.Semi);
-        //emitl("import",(String)arg,".runtime.ConsoleIO",LexicalStructure.Semi);
+        emitl("import",(String)arg,".runtime",".ConsoleIO",LexicalStructure.Semi);
         // emit class
         emitl("public class", program.getName(), LBRACE);
         // emit method
@@ -319,7 +316,7 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitWriteStatement(WriteStatement writeStatement, Object arg) throws PLCCompilerException {
-        emits("System.out.println", LexicalStructure.LParen);
+        emits("ConsoleIO.write", LexicalStructure.LParen);
         writeStatement.getExpr().visit(this, arg);
         emits(LexicalStructure.RParen, LexicalStructure.Semi);
         return null;
