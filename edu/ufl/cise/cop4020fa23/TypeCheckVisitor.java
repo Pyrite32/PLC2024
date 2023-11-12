@@ -151,6 +151,9 @@ public class TypeCheckVisitor implements ASTVisitor {
         var varType = res2Type(declaration.firstToken());
 
         if (declaration.getInitializer() != null) {
+            if (declaration.getInitializer() instanceof IdentExpr && !table.has((declaration.getInitializer()).firstToken().text())) {
+                throw new TypeCheckException("The name " + declaration.getInitializer().firstToken().text() + " does not exist!");
+            }
 
             boolean implicitCast = false;
 

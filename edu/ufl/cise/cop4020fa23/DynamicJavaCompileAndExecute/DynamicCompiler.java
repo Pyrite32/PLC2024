@@ -22,6 +22,9 @@ public class DynamicCompiler {
 		List<String> options = new ArrayList<>();
 		options.add("-classpath");
 		options.add("bin");
+		options.add("--release");
+		options.add("20");
+		options.add("--enable-preview");
 		
 		boolean success = compiler.getTask(null, fileManager, null, options, null, sourceFiles).call();
 		if (success) {
