@@ -154,13 +154,13 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitConditionalExpr(ConditionalExpr conditionalExpr, Object arg) throws PLCCompilerException {
-
+        emits(LexicalStructure.LParen);
         conditionalExpr.getGuardExpr().visit(this, arg);
         emits(LexicalStructure.Question);
         conditionalExpr.getTrueExpr().visit(this, arg);
         emits(LexicalStructure.Colon);
         conditionalExpr.getFalseExpr().visit(this, arg);
-
+        emits(LexicalStructure.RParen);
         return null;
     }
 
@@ -302,6 +302,7 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitUnaryExpr(UnaryExpr unaryExpr, Object arg) throws PLCCompilerException {
+        emits(LexicalStructure.LParen);
         switch (unaryExpr.getOp()) {
             case MINUS:
             case BANG:
@@ -311,6 +312,7 @@ public class CodeGenVisitor implements ASTVisitor {
             default:
                 throw new UnsupportedOperationException();
         }
+        emits(LexicalStructure.RParen);
         return null;
     }
 
