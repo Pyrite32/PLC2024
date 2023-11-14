@@ -96,7 +96,7 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitBinaryExpr(BinaryExpr binaryExpr, Object arg) throws PLCCompilerException {
-
+        emits(LexicalStructure.LParen);
         switch (binaryExpr.getOp().kind()) {
             case EXP:
                 emits(LexicalStructure.LParen, "int", LexicalStructure.RParen);
@@ -121,7 +121,7 @@ public class CodeGenVisitor implements ASTVisitor {
                 binaryExpr.getRightExpr().visit(this, arg);
                 break;
         }
-
+        emits(LexicalStructure.RParen);
         return null;
     }
 
