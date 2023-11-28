@@ -148,7 +148,7 @@ public class TypeCheckVisitor implements ASTVisitor {
         // System.out.println("Touch visitDeclaration ");
         declaration.getNameDef().visit(this, true);
 
-        var varType = res2Type(declaration.firstToken());
+        Type varType = res2Type(declaration.firstToken());
 
         if (declaration.getInitializer() != null) {
             if (declaration.getInitializer() instanceof IdentExpr && !table.has((declaration.getInitializer()).firstToken().text())) {
@@ -156,16 +156,34 @@ public class TypeCheckVisitor implements ASTVisitor {
             }
 
             boolean implicitCast = false;
+            Type initType = Type.IMAGE;
+            if (varType == Type.IMAGE) {
+                if (declaration.getInitializer() instanceof IdentExpr) {
+                    var otherType = table.typeOf(declaration.getInitializer().firstToken().text());
+                    declaration.getInitializer().visit(this, otherType);
 
-            var initType = declaration.getInitializer().visit(this, varType);
-            if (varType == Type.IMAGE && initType == Type.STRING) {
+                    if (otherType != Type.IMAGE && otherType != Type.STRING) {
+                        throw new TypeCheckException("Identifier " + declaration.getInitializer().firstToken().text() + " should be of type Image or String. Got : " + otherType.toString());
+                    }
+                    initType = otherType;
+                    
+                }
+                else {
+                    initType = (Type)declaration.getInitializer().visit(this, arg);
+                }
+            }
+
+            if (varType == Type.IMAGE && (initType == Type.STRING || declaration.getInitializer().firstToken().kind() == Kind.STRING_LIT)) {
                 implicitCast = true;
             }
             if (initType != varType && !implicitCast) {
                 throw new TypeCheckException(declaration.firstToken().sourceLocation(),
                         "The initializer does not match the expected type: " + varType.toString());
             }
+
+
             declaration.getInitializer().setType((Type) initType);
+            
         }
         table.flushDeferredPuts();
         // System.out.println("Exit visitDeclaration ");

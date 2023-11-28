@@ -205,6 +205,7 @@ class CodeGenTest_Hw5_starter {
 		int p = (Integer) PLCLangExec.runCode(packageName, source, val);
 		show(Integer.toHexString(p));
 		int expected = PixelOps.pack(val, val, val);
+		show(Integer.toHexString(expected));
 		assertEquals(expected, p);
 	}
 

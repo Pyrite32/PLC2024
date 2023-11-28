@@ -1317,5 +1317,10 @@ assertThrows(TypeCheckException.class, () -> {
 });
 }
 
+@Test
+void testTest0() {
+	
+}
+
 
 }

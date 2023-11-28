@@ -31,8 +31,14 @@ import edu.ufl.cise.cop4020fa23.ast.WriteStatement;
 import edu.ufl.cise.cop4020fa23.exceptions.PLCCompilerException;
 import edu.ufl.cise.cop4020fa23.exceptions.TypeCheckException;
 import edu.ufl.cise.cop4020fa23.exceptions.CodeGenException;
+import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
 
+import static org.hamcrest.CoreMatchers.nullValue;
+
+import java.awt.Color;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.UUID;
 
 public class CodeGenVisitor implements ASTVisitor {
@@ -44,6 +50,8 @@ public class CodeGenVisitor implements ASTVisitor {
     StringBuilder codebase = new StringBuilder();
     String packageName;
 
+    Queue<String> deferredEmit = new LinkedList<String>();
+
     long id = 0;
     long scopeLevel = 0;
 
@@ -51,7 +59,14 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitConstExpr(ConstExpr constExpr, Object arg) throws PLCCompilerException {
-        emits(constExpr.firstToken().text());
+        String text = constExpr.getName();
+        if (text.equals("Z")) {
+            emits("255");
+        } else {
+            String result = "0x" + Integer.toHexString(stringToColor(text).getRGB());
+            emits(result);
+        }
+
         return null;
     }
 
@@ -86,9 +101,49 @@ public class CodeGenVisitor implements ASTVisitor {
     @Override
     public Object visitAssignmentStatement(AssignmentStatement assignmentStatement, Object arg)
             throws PLCCompilerException {
-        assignmentStatement.getlValue().visit(this, arg);
-        emits(LexicalStructure.Assign);
-        assignmentStatement.getE().visit(this, arg);
+
+        if (assignmentStatement.getlValue().getType() == Type.PIXEL && assignmentStatement.getE().getType() == Type.INT) {
+            if (assignmentStatement.getlValue().getChannelSelector() != null) {
+                assignmentStatement.getlValue().visit(this, arg);
+                emits(LexicalStructure.Assign);
+                Kind color = assignmentStatement.getlValue().getChannelSelector().color();
+                switch (color) {
+                    case RES_red:
+                        emits("PixelOps.setRed", LexicalStructure.LParen);
+                        break;
+                    case RES_green:
+                        emits("PixelOps.setGreen", LexicalStructure.LParen);
+                        break;
+                    case RES_blue:
+                        emits("PixelOps.setBlue", LexicalStructure.LParen);
+                        break;
+                    default:
+                        break;
+                }
+                assignmentStatement.getlValue().visit(this, arg);
+                emits(LexicalStructure.Comma);
+                assignmentStatement.getE().visit(this, arg);
+                emits(LexicalStructure.RParen);
+            } else {
+                emits("CodeGenUtilities.asPixel", LexicalStructure.LParen);
+                assignmentStatement.getE().visit(this, arg);
+                emits(LexicalStructure.RParen);
+            }
+        }
+        else if (assignmentStatement.getlValue().getType() == Type.IMAGE) {
+            if (assignmentStatement.getE().getType() == Type.STRING) {
+                assignmentStatement.getlValue().visit(this, arg);
+                emits(LexicalStructure.Assign);
+                emits("FileURLIO.readImage",LexicalStructure.LParen);
+                assignmentStatement.getE().visit(this, arg);
+                emits(LexicalStructure.RParen);
+            }
+        }
+        else {
+            assignmentStatement.getlValue().visit(this, arg);
+            emits(LexicalStructure.Assign);
+            assignmentStatement.getE().visit(this, arg);
+        }
         endStatement();
 
         return null;
@@ -100,25 +155,37 @@ public class CodeGenVisitor implements ASTVisitor {
         switch (binaryExpr.getOp().kind()) {
             case EXP:
                 emits(LexicalStructure.LParen, "int", LexicalStructure.RParen);
-                emits("Math.round",LexicalStructure.LParen);
+                emits("Math.round", LexicalStructure.LParen);
                 emits("Math.pow", LexicalStructure.LParen);
                 binaryExpr.getLeftExpr().visit(this, arg);
                 emits(LexicalStructure.Comma);
                 binaryExpr.getRightExpr().visit(this, arg);
-                emits(LexicalStructure.RParen,LexicalStructure.RParen);
+                emits(LexicalStructure.RParen, LexicalStructure.RParen);
                 break;
             case EQ:
                 if (binaryExpr.getLeftExpr().getType() == Type.STRING) {
                     binaryExpr.getLeftExpr().visit(this, arg);
-                    emits(".equals",LexicalStructure.LParen);
+                    emits(".equals", LexicalStructure.LParen);
                     binaryExpr.getRightExpr().visit(this, arg);
                     emits(LexicalStructure.RParen);
                     break;
                 }
             default:
-                binaryExpr.getLeftExpr().visit(this, arg);
-                emits(LexicalStructure.kind2Char(binaryExpr.getOpKind()));
-                binaryExpr.getRightExpr().visit(this, arg);
+                Kind opKind = binaryExpr.getOpKind();
+                if (binaryExpr.getLeftExpr().getType() == binaryExpr.getRightExpr().getType()
+                        && binaryExpr.getLeftExpr().getType() == Type.PIXEL) {
+                    if (opKind == Kind.PLUS) {
+                        emits("CodeGenUtilities.addPixels", LexicalStructure.LParen);
+                        binaryExpr.getLeftExpr().visit(this, arg);
+                        emits(LexicalStructure.Comma);
+                        binaryExpr.getRightExpr().visit(this, arg);
+                        emits(LexicalStructure.RParen);
+                    }
+                } else {
+                    binaryExpr.getLeftExpr().visit(this, arg);
+                    emits(LexicalStructure.kind2Char(binaryExpr.getOpKind()));
+                    binaryExpr.getRightExpr().visit(this, arg);
+                }
                 break;
         }
         emits(LexicalStructure.RParen);
@@ -134,9 +201,8 @@ public class CodeGenVisitor implements ASTVisitor {
             indent();
             elem.visit(this, arg);
         }
-        emitl(RBRACE);
         scopeLevel--;
-
+        emitl(RBRACE);
         return null;
     }
 
@@ -148,7 +214,21 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitChannelSelector(ChannelSelector channelSelector, Object arg) throws PLCCompilerException {
-        // TODO Auto-generated method stub
+        switch (channelSelector.color()) {
+            case RES_red:
+                emits("PixelOps.red", LexicalStructure.LParen);
+                break;
+            case RES_green:
+                emits("PixelOps.green", LexicalStructure.LParen);
+                break;
+            case RES_blue:
+                emits("PixelOps.blue", LexicalStructure.LParen);
+                break;
+            default:
+                break;
+        }
+        // don't include; The primary expr above needs to be visited first.
+        // emits(LexicalStructure.RParen);
         return null;
     }
 
@@ -167,10 +247,73 @@ public class CodeGenVisitor implements ASTVisitor {
     @Override
     public Object visitDeclaration(Declaration declaration, Object arg) throws PLCCompilerException {
 
-        declaration.getNameDef().visit(this, arg);
+
+        Dimension maybeDimension = (Dimension)declaration.getNameDef().visit(this, arg);
+
+        if (maybeDimension != null && maybeDimension instanceof Dimension) {
+            if (declaration.getNameDef().getType() == Type.IMAGE && declaration.getInitializer() == null) {
+                emits(LexicalStructure.Assign);
+                emits("ImageOps.makeImage",LexicalStructure.LParen);
+                maybeDimension.getWidth().visit(this, arg);
+                emits(LexicalStructure.Comma);
+                maybeDimension.getHeight().visit(this, arg);
+                emits(LexicalStructure.RParen);
+                endStatement();
+
+                return null;
+            }
+        }
+        
+
         if (declaration.getInitializer() != null) {
             emits(LexicalStructure.Assign);
-            declaration.getInitializer().visit(this, true);
+            if (maybeDimension != null) {
+                // declare image on its own.
+                emits("ImageOps.makeImage",LexicalStructure.LParen);
+                maybeDimension.getWidth().visit(this, arg);
+                emits(LexicalStructure.Comma);
+                maybeDimension.getHeight().visit(this, arg);
+                emits(LexicalStructure.RParen);
+                endStatement();
+                indent();
+                emits("ImageOps.copyInto",LexicalStructure.LParen);
+                
+                // reuse name!
+                VarTableEntry entry = new VarTableEntry(declaration.getNameDef().getName(), scopeLevel);
+                String varName = uniqueIdentifierMapper.get(entry);
+                
+                // call copyInto
+                if (declaration.getNameDef().getType() == Type.IMAGE && declaration.getInitializer().getType() == Type.STRING) {
+                    emits("FileURLIO.readImage", LexicalStructure.LParen);
+                    declaration.getInitializer().visit(this, true);
+                    emits(LexicalStructure.RParen);
+                
+                }
+                else if (declaration.getNameDef().getType() == Type.IMAGE && declaration.getInitializer().getType() == Type.IMAGE) {
+                    declaration.getInitializer().visit(this, true);
+                }
+                emits(LexicalStructure.Comma);
+
+                
+                emits(varName, LexicalStructure.RParen);
+                
+            }
+            else {
+                if (declaration.getNameDef().getType() == Type.IMAGE && declaration.getInitializer().getType() == Type.STRING) {
+                    emits("FileURLIO.readImage",LexicalStructure.LParen);
+                    declaration.getInitializer().visit(this, true);
+                    emits(LexicalStructure.RParen);
+                }
+                else if (declaration.getNameDef().getType() == Type.IMAGE && declaration.getInitializer().getType() == Type.IMAGE) {
+                    emits("ImageOps.cloneImage", LexicalStructure.LParen);
+                    declaration.getInitializer().visit(this, true);
+                    emits(LexicalStructure.RParen);
+                }
+                else {
+                    declaration.getInitializer().visit(this, true);
+                }
+            }
+            
         }
         endStatement();
 
@@ -191,7 +334,13 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitExpandedPixelExpr(ExpandedPixelExpr expandedPixelExpr, Object arg) throws PLCCompilerException {
-        // TODO Auto-generated method stub
+        emits("PixelOps.pack", LexicalStructure.LParen);
+        expandedPixelExpr.getRed().visit(this, arg);
+        emits(LexicalStructure.Comma);
+        expandedPixelExpr.getGreen().visit(this, arg);
+        emits(LexicalStructure.Comma);
+        expandedPixelExpr.getBlue().visit(this, arg);
+        emits(LexicalStructure.RParen);
         return null;
     }
 
@@ -209,13 +358,12 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitLValue(LValue lValue, Object arg) throws PLCCompilerException {
-        if (lValue.getNameDef() != null)
+        if (lValue.getNameDef() != null) {
             lValue.getNameDef().visit(this, arg);
-        else {
+        } else {
             var name = getIdentifierName(lValue.getName());
             emits(name);
         }
-
         // TODO Handle the pixel crap.
 
         return null;
@@ -224,27 +372,53 @@ public class CodeGenVisitor implements ASTVisitor {
     @Override
     public Object visitNameDef(NameDef nameDef, Object arg) throws PLCCompilerException {
         var name = makeIdentifierName(nameDef.getName());
+        Dimension result = null;
+        emits(typeToJavaType(nameDef.getType()));
+        if (nameDef.getDimension() != null) {
+            result = nameDef.getDimension();
+            nameDef.getDimension().visit(this, arg);
+        }
+        emits(name);
 
-        emits(typeToJavaType(nameDef.getType()), name);
-
-        return null;
+        return result;
     }
 
     @Override
     public Object visitPixelSelector(PixelSelector pixelSelector, Object arg) throws PLCCompilerException {
         // TODO Auto-generated method stub
+
         return null;
     }
 
     @Override
     public Object visitPostfixExpr(PostfixExpr postfixExpr, Object arg) throws PLCCompilerException {
-        // TODO Auto-generated method stub
+        // the primary expression will always be an integer.
+        // no extension methods in Java
+        // call primary last.
+
+        String parens = "";
+        if (postfixExpr.pixel() != null) {
+            postfixExpr.pixel().visit(this, arg);
+            parens += LexicalStructure.RParen;
+        }
+        if (postfixExpr.channel() != null) {
+            postfixExpr.channel().visit(this, arg);
+            parens += LexicalStructure.RParen;
+        }
+        postfixExpr.primary().visit(this, arg);
+        emits(parens);
+
+        // handle after processing the parens.
+        // postfixExpr.primary().visit(this, arg);
         return null;
     }
 
     private String typeToJavaType(Type type) {
         return switch (type) {
             case STRING -> "String";
+            case PIXEL -> "int";
+            case BOOLEAN -> "Boolean";
+            case IMAGE -> "BufferedImage";
             default -> type.toString().toLowerCase();
         };
 
@@ -260,7 +434,12 @@ public class CodeGenVisitor implements ASTVisitor {
 
         // emit package
         emitl("package", (String) arg, LexicalStructure.Semi);
-        emitl("import",(String)arg,".runtime",".ConsoleIO",LexicalStructure.Semi);
+        emitl("import", (String) arg, ".runtime", ".ConsoleIO", LexicalStructure.Semi);
+        emitl("import", (String) arg, ".runtime", ".PixelOps", LexicalStructure.Semi);
+        emitl("import", (String) arg, ".runtime", ".FileURLIO", LexicalStructure.Semi);
+        emitl("import", (String) arg, ".runtime", ".ImageOps", LexicalStructure.Semi);
+        emitl("import", "java", ".awt",".image", ".BufferedImage", LexicalStructure.Semi);
+
         // emit class
         emitl("public class", program.getName(), LBRACE);
         // emit method
@@ -356,7 +535,6 @@ public class CodeGenVisitor implements ASTVisitor {
     }
 
     private String getIdentifierName(String identName) throws CodeGenException {
-
         for (long i = scopeLevel; i >= 0; --i) {
             var key = new VarTableEntry(identName, i);
             var tryGetName = uniqueIdentifierMapper.get(key);
@@ -369,11 +547,36 @@ public class CodeGenVisitor implements ASTVisitor {
     }
 
     private String makeIdentifierName(String identName) {
-
         var key = new VarTableEntry(identName, scopeLevel);
         var stringName = "$" + identName + (++id);
         uniqueIdentifierMapper.put(key, stringName);
         return stringName;
+    }
+
+    private void flushDeferred() {
+        while (!deferredEmit.isEmpty()) {
+            emits(deferredEmit.poll());
+        }
+    }
+
+    private Color stringToColor(String color) {
+        return switch (color) {
+            case "BLACK" -> Color.BLACK;
+            case "BLUE" -> Color.BLUE;
+            case "CYAN" -> Color.CYAN;
+            case "DARK_GRAY" -> Color.DARK_GRAY;
+            case "GRAY" -> Color.GRAY;
+            case "GREEN" -> Color.GREEN;
+            case "LIGHT_GRAY" -> Color.LIGHT_GRAY;
+            case "MAGENTA" -> Color.MAGENTA;
+            case "ORANGE" -> Color.ORANGE;
+            case "PINK" -> Color.PINK;
+            case "RED" -> Color.RED;
+            case "WHITE" -> Color.WHITE;
+            case "YELLOW" -> Color.YELLOW;
+            default -> Color.WHITE;
+        };
+
     }
 
 }
