@@ -156,7 +156,7 @@ public class TypeCheckVisitor implements ASTVisitor {
             }
 
             boolean implicitCast = false;
-            Type initType = Type.IMAGE;
+            Type initType = declaration.getNameDef().getType();
             if (varType == Type.IMAGE) {
                 if (declaration.getInitializer() instanceof IdentExpr) {
                     var otherType = table.typeOf(declaration.getInitializer().firstToken().text());

@@ -335,10 +335,13 @@ class CodeGenTest_Hw5_starter {
 	/**
 	 * package edu.ufl.cise.cop4020fa23; import java.awt.image.BufferedImage; import
 	 * edu.ufl.cise.cop4020fa23.runtime.ImageOps; import
-	 * edu.ufl.cise.cop4020fa23.runtime.FileURLIO; public class f{ public static
-	 * BufferedImage apply(String url$1){ BufferedImage
-	 * i$2=FileURLIO.readImage(url$1); BufferedImage
-	 * j$2=ImageOps.copyAndResize(i$2,50,100); ; return j$2; } }
+	 * edu.ufl.cise.cop4020fa23.runtime.FileURLIO; public class f {
+	 * public static BufferedImage apply (String url$1) {
+	 *     BufferedImage i$2 = FileURLIO.readImage(url$1);
+	 *     BufferedImage j$2=ImageOps.copyAndResize(i$2,50,100);
+	 *     return j$2;
+	 *     }
+	 * }
 	 */
 	@Test
 	void hw5_12() throws Exception {

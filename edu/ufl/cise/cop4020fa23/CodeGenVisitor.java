@@ -269,19 +269,9 @@ public class CodeGenVisitor implements ASTVisitor {
             emits(LexicalStructure.Assign);
             if (maybeDimension != null) {
                 // declare image on its own.
-                emits("ImageOps.makeImage",LexicalStructure.LParen);
-                maybeDimension.getWidth().visit(this, arg);
-                emits(LexicalStructure.Comma);
-                maybeDimension.getHeight().visit(this, arg);
-                emits(LexicalStructure.RParen);
-                endStatement();
-                indent();
-                emits("ImageOps.copyInto",LexicalStructure.LParen);
-                
-                // reuse name!
-                VarTableEntry entry = new VarTableEntry(declaration.getNameDef().getName(), scopeLevel);
-                String varName = uniqueIdentifierMapper.get(entry);
-                
+                emits("ImageOps.copyAndResize",LexicalStructure.LParen);
+
+
                 // call copyInto
                 if (declaration.getNameDef().getType() == Type.IMAGE && declaration.getInitializer().getType() == Type.STRING) {
                     emits("FileURLIO.readImage", LexicalStructure.LParen);
@@ -293,9 +283,11 @@ public class CodeGenVisitor implements ASTVisitor {
                     declaration.getInitializer().visit(this, true);
                 }
                 emits(LexicalStructure.Comma);
-
-                
-                emits(varName, LexicalStructure.RParen);
+                // include resize.
+                maybeDimension.getWidth().visit(this, arg);
+                emits(LexicalStructure.Comma);
+                maybeDimension.getHeight().visit(this, arg);
+                emits(LexicalStructure.RParen);
                 
             }
             else {
@@ -328,7 +320,22 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitDoStatement(DoStatement doStatement, Object arg) throws PLCCompilerException {
-        // TODO Auto-generated method stub
+        
+        String continueDoName = makeIdentifierName("continueDo");
+        emitl("boolean", continueDoName, LexicalStructure.Assign, "false", LexicalStructure.Semi);
+        indent();
+        emitl("while", LexicalStructure.LParen, LexicalStructure.Bang, continueDoName,LexicalStructure.RParen,LBRACE);
+        indent();
+        emitl(continueDoName, LexicalStructure.Assign, "true", LexicalStructure.Semi);
+
+        var blocks = doStatement.getGuardedBlocks();
+
+        for (var gBlock : blocks) {
+            gBlock.visit(this, continueDoName);
+        }
+
+        emitl(RBRACE);
+
         return null;
     }
 
@@ -346,13 +353,61 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitGuardedBlock(GuardedBlock guardedBlock, Object arg) throws PLCCompilerException {
-        // TODO Auto-generated method stub
+        indent();
+        Integer index = 0;
+        String falsifyConditionName = null;
+        if (arg instanceof Integer) {
+            index = (Integer)arg;
+        }
+        else if (arg instanceof String) {
+            falsifyConditionName = (String)arg;    
+        }
+
+        if (index == 0) {
+            emits("if", LexicalStructure.LParen);
+        }
+        /*else if (index == -1) {
+            emits("else");
+            guardedBlock.getBlock().visit(this, arg);
+            return null;
+        } */
+        else {
+            emits("else if", LexicalStructure.LParen);
+        }
+
+        guardedBlock.getGuard().visit(this, arg);
+        emits(LexicalStructure.RParen);
+        if (falsifyConditionName != null) {
+
+            emits("\n");
+            emitl(LBRACE);
+            indent();
+            emitl(falsifyConditionName, LexicalStructure.Assign, "false", LexicalStructure.Semi);
+            indent();
+            guardedBlock.getBlock().visit(this, arg);
+            emitl(RBRACE);
+        }
+        else {
+            guardedBlock.getBlock().visit(this, arg);
+        }
+        
         return null;
     }
 
     @Override
     public Object visitIfStatement(IfStatement ifStatement, Object arg) throws PLCCompilerException {
-        // TODO Auto-generated method stub
+        //emits("if",LexicalStructure.LParen);
+        //emits(LexicalStructure.LParen);
+        var blocks = ifStatement.getGuardedBlocks();
+        var size = blocks.size();
+        Integer index = 0;
+        for (var gBlock : blocks) {
+            if (index == size-1) {
+                index = -1;
+            }
+            gBlock.visit(this, index);
+            index++;
+        }
         return null;
     }
 
