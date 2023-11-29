@@ -423,7 +423,8 @@ public class TypeCheckVisitor implements ASTVisitor {
                                 + rightType.toString());
             finalType = Type.BOOLEAN;
         } else if (opKind == Kind.PLUS) {
-            if (rightType != leftType)
+            // FIXME : HELP!! WHY IS THIS ALLOWED??
+            if (rightType != leftType && !(leftType == Type.IMAGE && (rightType == Type.PIXEL || rightType == Type.INT)))
                 throw new TypeCheckException(binaryExpr.firstToken().sourceLocation(),
                         "Cannot apply " + opKind.toString() + " Between" + leftType.toString() + " and "
                                 + rightType.toString());

@@ -712,6 +712,27 @@ class CodeGenTest_Hw5_starter {
 			//show(image);
 	}
 
+	@Test
+	void susjerma_4() throws Exception {
+		String source = """
+			image susjerma(string artUrl, string spaceUrl)
+			<:
+			image art = artUrl;
+			image[width art, height art] gradient;
+			gradient = [230, 160, 200];
+			gradient[x,y] = [230, 160, 200] - (height gradient - y);
+			## image[width art, height art] space = spaceUrl;
+			## image final = (art + space);
+
+			^gradient+art;
+			:>
+			""";
+			String artLink = "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/34739582-0fc4-4a9f-8364-983c7ffde119/dgdqcb1-df993c3c-45a6-4b00-94df-8dc08bb7dba3.png/v1/fill/w_960,h_1002,q_80,strp/miku_fairy_by_isosceless_dgdqcb1-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MjAwNCIsInBhdGgiOiJcL2ZcLzM0NzM5NTgyLTBmYzQtNGE5Zi04MzY0LTk4M2M3ZmZkZTExOVwvZGdkcWNiMS1kZjk5M2MzYy00NWE2LTRiMDAtOTRkZi04ZGMwOGJiN2RiYTMucG5nIiwid2lkdGgiOiI8PTE5MjAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.q70SAwPFMbwQsK_myGjG4hkvcKO_HgQIScVxCBE3qew";
+			String spaceLink = "https://unblast.com/wp-content/uploads/2021/01/Space-Background-Image-2.jpg";
+			BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, artLink, spaceLink);
+			//show(image);
+	}
+
 	
 	@Test
 	void susjerma_2() throws Exception {
