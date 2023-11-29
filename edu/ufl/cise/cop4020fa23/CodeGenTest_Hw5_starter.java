@@ -743,13 +743,13 @@ class CodeGenTest_Hw5_starter {
 				image susjerma(string url)
 				<:
 				image susjerma = url;
-				susjerma[x,y] = (RED+x);
+				susjerma[x,y] = (RED*x);
 				^susjerma;
 				:>
 				""";
 				String jermaLink = "https://static.wikia.nocookie.net/jerma-lore/images/e/e3/JermaSus.jpg/revision/latest?cb=20201206225609";
 				BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, jermaLink);
-				show(image);
+				//show(image);
 		}
 	}
 	
