@@ -33,4 +33,14 @@ public final class CodeGenUtilities {
         return result;
     }
 
+    public static int widthOf(BufferedImage i) {
+        int width = i.getWidth();
+        return width;
+    }
+
+    public static int heightOf(BufferedImage i) {
+        int height = i.getHeight();
+        return height;
+    }
+
 }

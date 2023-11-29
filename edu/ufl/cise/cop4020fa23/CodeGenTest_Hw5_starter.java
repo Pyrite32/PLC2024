@@ -709,7 +709,7 @@ class CodeGenTest_Hw5_starter {
 			""";
 			String jermaLink = "https://static.wikia.nocookie.net/jerma-lore/images/e/e3/JermaSus.jpg/revision/latest?cb=20201206225609";
 			BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, jermaLink);
-			show(image);
+			//show(image);
 	}
 
 	@Test
@@ -718,12 +718,21 @@ class CodeGenTest_Hw5_starter {
 			image susjerma(string url)
 			<:
 			image susjerma = url;
-			^(susjerma/10);
+			image[3200/2 + 1,400/2] longRed;
+			longRed = BLACK + (RED - BLACK) / 2;
+			image[width longRed,height longRed] longjerma = susjerma;
+			write "-- Long Jerma --";
+			write width longjerma;
+			write height longjerma;
+			write "--Long Red--";
+			write width longRed;
+			write height longRed;
+			^(longjerma + longRed);
 			:>
 			""";
 			String jermaLink = "https://static.wikia.nocookie.net/jerma-lore/images/e/e3/JermaSus.jpg/revision/latest?cb=20201206225609";
 			BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, jermaLink);
-			show(image);
+			//show(image);
 	}
 
 }

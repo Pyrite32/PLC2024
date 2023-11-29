@@ -34,6 +34,7 @@ import edu.ufl.cise.cop4020fa23.exceptions.TypeCheckException;
 import edu.ufl.cise.cop4020fa23.exceptions.CodeGenException;
 import edu.ufl.cise.cop4020fa23.exceptions.LexicalException;
 
+import static edu.ufl.cise.cop4020fa23.Kind.RES_height;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.nullValue;
 
@@ -253,6 +254,14 @@ public class CodeGenVisitor implements ASTVisitor {
                             emits("CodeGenUtilities.addPixels", LexicalStructure.LParen);
                             binaryExpr.getLeftExpr().visit(this, arg);
                             emits(LexicalStructure.Comma);
+                            binaryExpr.getRightExpr().visit(this, arg);
+                            emits(LexicalStructure.RParen);
+                        }
+                        if (opKind == Kind.MINUS) {
+                            emits("CodeGenUtilities.addPixels", LexicalStructure.LParen);
+                            binaryExpr.getLeftExpr().visit(this, arg);
+                            emits(LexicalStructure.Comma);
+                            emits(LexicalStructure.Minus);
                             binaryExpr.getRightExpr().visit(this, arg);
                             emits(LexicalStructure.RParen);
                         }
@@ -625,6 +634,16 @@ public class CodeGenVisitor implements ASTVisitor {
             case BANG:
                 emits(LexicalStructure.kind2Char(unaryExpr.getOp()));
                 unaryExpr.getExpr().visit(this, arg);
+                break;
+            case RES_width:
+                emits("CodeGenUtilities.widthOf (");
+                unaryExpr.getExpr().visit(this, arg);
+                emits(")");
+                break;
+            case RES_height:
+                emits("CodeGenUtilities.heightOf (");
+                unaryExpr.getExpr().visit(this, arg);
+                emits(")");
                 break;
             default:
                 throw new UnsupportedOperationException();

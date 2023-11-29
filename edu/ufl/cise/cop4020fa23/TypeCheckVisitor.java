@@ -176,13 +176,16 @@ public class TypeCheckVisitor implements ASTVisitor {
             if (varType == Type.IMAGE && (initType == Type.STRING || declaration.getInitializer().firstToken().kind() == Kind.STRING_LIT)) {
                 implicitCast = true;
             }
+
+            declaration.getInitializer().visit(this, initType);
+            initType = declaration.getInitializer().getType();
+            declaration.getInitializer().setType((Type) initType);
+
             if (initType != varType && !implicitCast) {
                 throw new TypeCheckException(declaration.firstToken().sourceLocation(),
                         "The initializer does not match the expected type: " + varType.toString());
             }
 
-
-            declaration.getInitializer().setType((Type) initType);
             
         }
         table.flushDeferredPuts();
