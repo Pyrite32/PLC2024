@@ -22,7 +22,7 @@ class CodeGenTest_Hw5_starter {
 
 	@AfterEach
 	public void separatingLine() {
-		show("----------------------------------------------");
+		//show("----------------------------------------------");
 	}
 
 	// makes it easy to turn output on and off (and less typing than
@@ -82,7 +82,7 @@ class CodeGenTest_Hw5_starter {
 				:>
 				""";
 		Object result = PLCLangExec.runCode(packageName, source);
-		show((int) result);
+		//show((int) result);
 		assertEquals(255, (int) result);
 	}
 
@@ -203,9 +203,9 @@ class CodeGenTest_Hw5_starter {
 				""";
 		int val = 33;
 		int p = (Integer) PLCLangExec.runCode(packageName, source, val);
-		show(Integer.toHexString(p));
+		//show(Integer.toHexString(p));
 		int expected = PixelOps.pack(val, val, val);
-		show(Integer.toHexString(expected));
+		//show(Integer.toHexString(expected));
 		assertEquals(expected, p);
 	}
 
@@ -227,7 +227,7 @@ class CodeGenTest_Hw5_starter {
 				""";
 		int val = 33;
 		int p = (Integer) PLCLangExec.runCode(packageName, source, PixelOps.pack(val, val, val));
-		show(Integer.toHexString(p));
+		//show(Integer.toHexString(p));
 		int expected = PixelOps.pack(val, 255, 255);
 		assertEquals(expected, p);
 	}
@@ -245,7 +245,7 @@ class CodeGenTest_Hw5_starter {
 		int g = 2;
 		int b = 3;
 		int p = (Integer) PLCLangExec.runCode(packageName, source, r, g, b);
-		show(Integer.toHexString(p));
+		//show(Integer.toHexString(p));
 		int expected = PixelOps.pack(r, g, b);
 		assertEquals(expected, p);
 	}
@@ -303,7 +303,7 @@ class CodeGenTest_Hw5_starter {
 		BufferedImage result = (BufferedImage) PLCLangExec.runCode(packageName, source, url);
 		BufferedImage expectedImage = FileURLIO.readImage(url);
 		compareImages(expectedImage, result);
-		show(result);
+		//show(result);
 	}
 
 	/**
@@ -329,7 +329,7 @@ class CodeGenTest_Hw5_starter {
 		BufferedImage result = (BufferedImage) PLCLangExec.runCode(packageName, source, url);
 		BufferedImage expected = FileURLIO.readImage(url);
 		compareImages(expected, result);
-		show(result);
+		//show(result);
 	}
 
 	/**
@@ -357,7 +357,7 @@ class CodeGenTest_Hw5_starter {
 		BufferedImage result = (BufferedImage) PLCLangExec.runCode(packageName, source, url);
 		BufferedImage expected = FileURLIO.readImage(url, 50, 100);
 		compareImages(expected, result);
-		show(result);
+		//show(result);
 	}
 
 	/**
@@ -482,11 +482,11 @@ class CodeGenTest_Hw5_starter {
 				   :>
 				   """;
 		BufferedImage result = (BufferedImage) PLCLangExec.runCode(packageName, source, 200, 300);
-		show(result);
 		BufferedImage expected = ImageOps.makeImage(200, 300);
 		for (int y = 0; y < 300; y++)
-			for (int x = 0; x < 200; x++)
-				expected.setRGB(x, y, y > 150 ? Color.blue.getRGB() : Color.green.getRGB());
+		for (int x = 0; x < 200; x++)
+		expected.setRGB(x, y, y > 150 ? Color.blue.getRGB() : Color.green.getRGB());
+		//show(result);
 		compareImages(expected, result);
 	}
 
@@ -509,7 +509,7 @@ class CodeGenTest_Hw5_starter {
 		for (int y = 0; y < 500; y++)
 			for (int x = 0; x < 600; x++)
 				expected.setRGB(x, y, image0.getRGB(y, x));
-		show(result);
+		//show(result);
 		compareImages(expected, result);
 	}
 
@@ -553,7 +553,7 @@ class CodeGenTest_Hw5_starter {
 
 		BufferedImage expected = ImageOps.binaryImageImageOp(ImageOps.OP.PLUS, image0, image1);
 		compareImages(expected, result);
-		show(result);
+		//show(result);
 	}
 
 	/**
@@ -590,7 +590,6 @@ class CodeGenTest_Hw5_starter {
 		int w = 200;
 		int h = 300;
 		BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, url, w, h);
-		show(image);
 		BufferedImage redImage = ImageOps.makeImage(w, h);
 		ImageOps.setAllPixels(redImage, Color.red.getRGB());
 		BufferedImage im0 = FileURLIO.readImage(url, w, h);
@@ -598,8 +597,9 @@ class CodeGenTest_Hw5_starter {
 		int xslice = w / 8;
 		int yslice = h / 8;
 		for (int y = 0; y < h; y++)
-			for (int x = 0; x < w; x++)
-				expected.setRGB(x, y, (x / xslice) % 2 == (y / yslice) % 2 ? im0.getRGB(x, y) : redImage.getRGB(x, y));
+		for (int x = 0; x < w; x++)
+		expected.setRGB(x, y, (x / xslice) % 2 == (y / yslice) % 2 ? im0.getRGB(x, y) : redImage.getRGB(x, y));
+		//show(expected);
 		compareImages(expected, image);
 	}
 
@@ -626,8 +626,8 @@ class CodeGenTest_Hw5_starter {
 		int w = 512;
 		int h = 512;
 		BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, w, h);
-		show(image);
 		BufferedImage expected = ImageOps.makeImage(w, h);
+		////show(image);
 		for (int y = 0; y < h; y++)
 			for (int x = 0; x < w; x++)
 				expected.setRGB(x, y, PixelOps.pack(x, y, 255));
@@ -658,7 +658,7 @@ class CodeGenTest_Hw5_starter {
 		int factor = 2;
 		String url = testURL;
 		BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, url, factor);
-		show(image);
+		////show(image);
 		BufferedImage im00 = FileURLIO.readImage(url);
 		int w = im00.getWidth();
 		int h = im00.getHeight();
@@ -691,11 +691,39 @@ class CodeGenTest_Hw5_starter {
 		int factor = 2;
 		String url = testURL;
 		BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, url, w, h, factor);
-		show(image);
+		////show(image);
 		BufferedImage im00 = FileURLIO.readImage(url);
 		BufferedImage expected = ImageOps.copyAndResize((ImageOps.binaryImageScalarOp(ImageOps.OP.TIMES, im00, factor)),
 				w, h);
 		compareImages(expected, image);
+	}
+
+	@Test
+	void susjerma_1() throws Exception {
+		String source = """
+			image susjerma(string url)
+			<:
+			image susjerma = url;
+			^susjerma;
+			:>
+			""";
+			String jermaLink = "https://static.wikia.nocookie.net/jerma-lore/images/e/e3/JermaSus.jpg/revision/latest?cb=20201206225609";
+			BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, jermaLink);
+			show(image);
+	}
+
+	@Test
+	void susjerma_2() throws Exception {
+		String source = """
+			image susjerma(string url)
+			<:
+			image susjerma = url;
+			^(susjerma/2);
+			:>
+			""";
+			String jermaLink = "https://static.wikia.nocookie.net/jerma-lore/images/e/e3/JermaSus.jpg/revision/latest?cb=20201206225609";
+			BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, jermaLink);
+			show(image);
 	}
 
 }

@@ -309,8 +309,24 @@ public class TypeCheckVisitor implements ASTVisitor {
     @Override
     public Object visitDimension(Dimension dimension, Object arg) throws PLCCompilerException {
         // System.out.println("Touch visitDimension ");
-        dimension.getWidth().visit(this, arg);
-        dimension.getHeight().visit(this, arg);
+        if (dimension.getWidth() instanceof IdentExpr) {
+            table.addTemporarySwizzle(dimension.getWidth().firstToken().text());
+            dimension.getWidth().visit(this, Type.INT);
+            
+        }
+        else {
+            dimension.getWidth().visit(this, arg);
+        }
+
+        if (dimension.getWidth() instanceof IdentExpr) {
+            table.addTemporarySwizzle(dimension.getHeight().firstToken().text());
+            dimension.getHeight().visit(this, Type.INT);
+
+        }
+        else {
+            dimension.getHeight().visit(this, arg);
+        }
+
 
         if (dimension.getWidth().getType() != Type.INT) {
             throw new TypeCheckException(dimension.getWidth().firstToken().sourceLocation(), "Width must be of type 'INT'");
@@ -504,7 +520,7 @@ public class TypeCheckVisitor implements ASTVisitor {
                                     + rightType.toString());
                 }
             }
-            if (opKind == Kind.MINUS) {
+            else if (opKind == Kind.MINUS) {
                 if (rightType == leftType) {
                     finalType = leftType;
                 } else {
@@ -587,6 +603,7 @@ public class TypeCheckVisitor implements ASTVisitor {
         }
 
         // System.out.println("Exit visitConditionalExpr ");
+        conditionalExpr.setType(trueType);
         return trueType;
     }
 

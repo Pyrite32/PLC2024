@@ -323,6 +323,9 @@ public class Lexer implements ILexer {
                         cluster = "";
                         break;
                     }
+                    if (currentChar == '\t') {
+                        continue;
+                    }
                     cluster += currentChar;
                     break;
                 case STRING:

@@ -1,9 +1,11 @@
 package edu.ufl.cise.cop4020fa23;
 
 import edu.ufl.cise.cop4020fa23.runtime.ConsoleIO;
+import edu.ufl.cise.cop4020fa23.runtime.ImageOps;
 import edu.ufl.cise.cop4020fa23.runtime.PixelOps;
 
 import java.awt.Color;
+import java.awt.image.BufferedImage;
 
 public final class CodeGenUtilities {
     
@@ -22,6 +24,13 @@ public final class CodeGenUtilities {
 
     public static int asPixel(int pixel) {
         return PixelOps.pack(pixel, pixel, pixel);
+    }
+
+    public static BufferedImage setAllPixelsAndGive(BufferedImage i, int color)
+    {
+        BufferedImage result = ImageOps.cloneImage(i);
+        ImageOps.setAllPixels(result, color);
+        return result;
     }
 
 }
