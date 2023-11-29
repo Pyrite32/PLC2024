@@ -139,6 +139,9 @@ public class CodeGenVisitor implements ASTVisitor {
             }
         }
         else if (assignmentStatement.getlValue().getType() == Type.IMAGE) {
+            if (assignmentStatement.getlValue().getChannelSelector() != null && assignmentStatement.getlValue().getPixelSelector() != null) {
+                throw new CodeGenException(assignmentStatement.firstToken.sourceLocation(), "Using Pixel and Channel selectors simultaneously is not supported!");
+            }
             if (assignmentStatement.getE().getType() == Type.STRING) {
                 assignmentStatement.getlValue().visit(this, arg);
                 emits(LexicalStructure.Assign);
@@ -179,6 +182,7 @@ public class CodeGenVisitor implements ASTVisitor {
                     }
                 }
                 else {
+                    // String[] swizzles = Can my compiler figure out the swizzles on its own? 
                     assignmentStatement.getE().visit(this,arg);
                 }
                 emits(LexicalStructure.RParen);
@@ -399,7 +403,10 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitDimension(Dimension dimension, Object arg) throws PLCCompilerException {
-        // TODO Auto-generated method stub
+        // dimension.getWidth().visit(this, arg);
+        // emits(",");
+        // dimension.getHeight().visit(this, arg);
+        // no benefit from doing this.
         return null;
     }
 

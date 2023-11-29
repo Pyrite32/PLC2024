@@ -712,6 +712,7 @@ class CodeGenTest_Hw5_starter {
 			//show(image);
 	}
 
+	
 	@Test
 	void susjerma_2() throws Exception {
 		String source = """
@@ -719,7 +720,7 @@ class CodeGenTest_Hw5_starter {
 			<:
 			image susjerma = url;
 			image[3200/2 + 1,400/2] longRed;
-			longRed = BLACK + (RED - BLACK) / 2;
+			longRed = [80 + width susjerma, 32, 28];
 			image[width longRed,height longRed] longjerma = susjerma;
 			write "-- Long Jerma --";
 			write width longjerma;
@@ -728,11 +729,27 @@ class CodeGenTest_Hw5_starter {
 			write width longRed;
 			write height longRed;
 			^(longjerma + longRed);
+			## ^longRed;
 			:>
 			""";
 			String jermaLink = "https://static.wikia.nocookie.net/jerma-lore/images/e/e3/JermaSus.jpg/revision/latest?cb=20201206225609";
 			BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, jermaLink);
 			//show(image);
+		}
+		
+		@Test
+		void susjerma_3() throws Exception {
+			String source = """
+				image susjerma(string url)
+				<:
+				image susjerma = url;
+				susjerma[x,y] = (RED+x);
+				^susjerma;
+				:>
+				""";
+				String jermaLink = "https://static.wikia.nocookie.net/jerma-lore/images/e/e3/JermaSus.jpg/revision/latest?cb=20201206225609";
+				BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, jermaLink);
+				show(image);
+		}
 	}
-
-}
+	
