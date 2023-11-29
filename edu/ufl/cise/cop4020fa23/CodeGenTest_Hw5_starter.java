@@ -718,7 +718,7 @@ class CodeGenTest_Hw5_starter {
 			image susjerma(string url)
 			<:
 			image susjerma = url;
-			^(susjerma/2);
+			^(susjerma/10);
 			:>
 			""";
 			String jermaLink = "https://static.wikia.nocookie.net/jerma-lore/images/e/e3/JermaSus.jpg/revision/latest?cb=20201206225609";
