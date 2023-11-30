@@ -625,13 +625,7 @@ public class CodeGenVisitor implements ASTVisitor {
 
     @Override
     public Object visitPostfixExpr(PostfixExpr postfixExpr, Object arg) throws PLCCompilerException {
-        // the primary expression will always be an integer.
-        // no extension methods in Java
-        // call primary last.
-        // structure ->
-        // get specific pixel ->
-        // isolate colors ->
-        // image
+
 
         if (postfixExpr.pixel() != null) {
 
