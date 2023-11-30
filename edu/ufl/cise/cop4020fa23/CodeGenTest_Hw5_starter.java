@@ -1,6 +1,7 @@
 package edu.ufl.cise.cop4020fa23;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
@@ -10,9 +11,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import edu.ufl.cise.cop4020fa23.DynamicJavaCompileAndExecute.PLCLangExec;
+import edu.ufl.cise.cop4020fa23.exceptions.TypeCheckException;
 import edu.ufl.cise.cop4020fa23.runtime.ConsoleIO;
 import edu.ufl.cise.cop4020fa23.runtime.FileURLIO;
 import edu.ufl.cise.cop4020fa23.runtime.ImageOps;
+import edu.ufl.cise.cop4020fa23.runtime.ImageOps.OP;
 import edu.ufl.cise.cop4020fa23.runtime.PixelOps;
 
 class CodeGenTest_Hw5_starter {
@@ -759,18 +762,451 @@ class CodeGenTest_Hw5_starter {
 		}
 		
 		@Test
-		void susjerma_3() throws Exception {
+		void nightmare_jerma() throws Exception {
 			String source = """
-				image susjerma(string url)
+				image nightmarejerma(string url)
 				<:
-				image susjerma = url;
-				susjerma[x,y] = (RED*x);
-				^susjerma;
+				image[512,512] nightmarejerma;
+				nightmarejerma = url;
+				nightmarejerma[x,y] = nightmarejerma[y,x];
+				nightmarejerma:red = nightmarejerma:red * 2;
+				^nightmarejerma;
 				:>
 				""";
 				String jermaLink = "https://static.wikia.nocookie.net/jerma-lore/images/e/e3/JermaSus.jpg/revision/latest?cb=20201206225609";
 				BufferedImage image = (BufferedImage) PLCLangExec.runCode(packageName, source, jermaLink);
+
+				BufferedImage $nightmarejerma2 = ImageOps.makeImage ( 512 , 512 ) ;
+				$nightmarejerma2 = ImageOps.copyAndResize ( FileURLIO.readImage ( jermaLink ) , $nightmarejerma2 .getWidth() , $nightmarejerma2 .getHeight() ) ;
+				for ( int $y3 = 0; $y3 < $nightmarejerma2 .getHeight() ; $y3 ++) { 
+				for ( int $x4 = 0; $x4 < $nightmarejerma2 .getWidth() ; $x4 ++) { 
+			ImageOps.setRGB ( $nightmarejerma2 , $x4 , $y3 , ImageOps.getRGB ( $nightmarejerma2 , $y3 , $x4 ) ) ;
+			} } ;
+				$nightmarejerma2 = ImageOps.copyAndResize ( ( ImageOps.binaryImageScalarOp( ImageOps.OP.TIMES , ImageOps. extractRed ( $nightmarejerma2 ) , 2 ) ) , $nightmarejerma2 .getWidth() , $nightmarejerma2 .getHeight() ) ;
 				//show(image);
+				compareImages(image, $nightmarejerma2); 
 		}
+
+
+		@Test
+    void unitTestExpandedPixelExpression() throws Exception {
+        String source = """
+                pixel Pixel()<:
+                           ^[25, 50, 75];
+                         :>
+
+
+                """;
+        Object result = PLCLangExec.runCode(packageName, source);
+        showPixel((int) result);
+        assertEquals(PixelOps.pack(25, 50, 75), (int) result);
+    }
+
+	@Test
+    void unittestGetWidth() throws Exception {
+        String source = """
+                int scale(int w, int h)
+                <:
+                image[w,h] im0;
+                im0 = RED;
+                ^(width im0);
+                :>
+                """;
+        int w = 512;
+        int h = 256;
+
+
+        int result = (int) PLCLangExec.runCode(packageName, source, w, h);
+        assertEquals(result, 512);
+    }
+
+	@Test
+    void unittestGetHeight() throws Exception {
+        String source = """
+                int scale(int w, int h)
+                <:
+                image[w,h] im0;
+                im0 = RED;
+                ^(height im0);
+                :>
+                """;
+        int w = 512;
+        int h = 256;
+
+
+        int result = (int) PLCLangExec.runCode(packageName, source, w, h);
+        assertEquals(result, 256);
+    }
+
+	@Test
+    void unaryHeight() throws Exception {
+        String source = """
+                int f(string url)
+                <:
+                image i = url;
+                image[50,100] j = i;
+                ^height j;
+                :>
+                """;
+        String url = testURL;
+        int result = (int) PLCLangExec.runCode(packageName, source, url);
+        assertEquals(result, 100);
+        show(result);
+    }
+
+	@Test
+    void doRunsOnce() throws Exception {
+        String source = """
+                int test(int a)
+                <:
+                do
+                   a == 0 -> <:  a = a - 1; :>
+                od;
+                ^a;
+                :>
+                """;
+        int result = (Integer) PLCLangExec.runCode(packageName, source, 0);
+        assertEquals(-1, result);
+    }
+
+	@Test
+    void nestedDoStatements() throws Exception {
+        String source = """
+                int test(int a)
+                <:
+                do
+                    a > 0 -> <:
+                        a = a - 1;
+                        do a>=1 -> <: a = a - 2; :> od;
+                        a = a * 2;
+                    :>
+                od;
+                ^a;
+                :>
+                """;
+        //int result = (Integer) PLCLangExec.runCode(packageName, source, 4);
+        //assertEquals(-2, result);
+    }
+
+	@Test
+    void ifDoesNotRun() throws Exception {
+        String source = """
+                int f()
+                <:
+                int x = 3;
+                if
+                   x < 2 -> <: x=x+1; :>
+                   fi;
+                   ^x;
+                :>
+                """;
+        int result = (Integer) PLCLangExec.runCode(packageName, source);
+        assertEquals(3, result);
+    }
+
+	@Test
+    void widthImplicitLoop() throws Exception {
+        String source = """
+                image checkerBoard(string url, int w, int h) <:
+                   image[w,h] im0 = url;
+                   im0[x,0] = RED;
+                   ^im0;
+                   :>
+                   """;
+        String url = testURL;
+        int w = 200;
+        int h = 300;
+        BufferedImage output = (BufferedImage) PLCLangExec.runCode(packageName, source, url, w, h);
+        BufferedImage expected = FileURLIO.readImage(url, w, h);
+        for (int x = 0; x < w; x++) {
+            expected.setRGB(x, 0, Color.red.getRGB());
+        }
+        compareImages(expected, output);
+    }
+
+	@Test
+    void heightImplicitLoop() throws Exception {
+        String source = """
+                image checkerBoard(string url, int w, int h) <:
+                   image[w,h] im0 = url;
+                   im0[0,y] = RED;
+                   ^im0;
+                   :>
+                   """;
+        String url = testURL;
+        int w = 200;
+        int h = 300;
+        BufferedImage output = (BufferedImage) PLCLangExec.runCode(packageName, source, url, w, h);
+        BufferedImage expected = FileURLIO.readImage(url, w, h);
+        for (int y = 0; y < h; y++) {
+            expected.setRGB(0, y, Color.red.getRGB());
+        }
+        compareImages(expected, output);
+    }
+
+	@Test
+    void noImplicitLoop() throws Exception {
+        String source = """
+                image checkerBoard(string url, int w, int h) <:
+                   image[w,h] im0 = url;
+                   im0[0,0] = RED;
+                   ^im0;
+                   :>
+                   """;
+        String url = testURL;
+        int w = 200;
+        int h = 300;
+        BufferedImage output = (BufferedImage) PLCLangExec.runCode(packageName, source, url, w, h);
+        BufferedImage expected = FileURLIO.readImage(url, w, h);
+        expected.setRGB(0, 0, Color.red.getRGB());
+        compareImages(expected, output);
+    }
+
+	@Test
+    void assignUrlToImage() throws Exception {
+        String source = """
+                image test(string url, int w, int h) <:
+                   image[w,h] im0;
+                   im0 = url;
+                   ^im0;
+                   :>
+                   """;
+        String url = testURL;
+        int w = 200;
+        int h = 300;
+        BufferedImage output = (BufferedImage) PLCLangExec.runCode(packageName, source, url, w, h);
+        BufferedImage expected = FileURLIO.readImage(url, w, h);
+        compareImages(expected, output);
+    }
+
+	@Test
+    void assignImageToImage() throws Exception {
+        String source = """
+                image test(string url, int w, int h) <:
+                   image[w,h] im0 = url;
+                   image[w/2,h/2] im1;
+                   im1 = im0;
+                   ^im1;
+                   :>
+                   """;
+        String url = testURL;
+        int w = 200;
+        int h = 300;
+        BufferedImage expected = FileURLIO.readImage(url, w, h);
+        expected = ImageOps.copyAndResize(expected, w/2, h/2);
+        BufferedImage output = (BufferedImage) PLCLangExec.runCode(packageName, source, url, w, h);
+        //show(output);
+		compareImages(expected, output);
+    }
+
+	@Test
+    void pixelsAreEqual() throws Exception {
+        String source = """
+                boolean test()<:
+                pixel i = RED;
+                pixel j = RED;
+                           ^i == j;
+                         :>
+                """;
+        Object result = PLCLangExec.runCode(packageName, source);
+        assertEquals(true, (boolean) result);
+    }
+
+	@Test
+    void pixelsAreNotEqual() throws Exception {
+        String source = """
+                boolean test()<:
+                pixel i = RED;
+                pixel j = BLUE;
+                           ^i == j;
+                         :>
+                """;
+        Object result = PLCLangExec.runCode(packageName, source);
+        assertEquals(false, (boolean) result);
+    }
+
+	@Test
+    void extractRedFromPixel() throws Exception {
+        String source = """
+                int example(int w, int h) <:
+                image[w,h] im;
+                im[x,y] = [50, 100, 150];
+                ^im[0,0]:red;
+                :>
+                """;
+        int w = 512;
+        int h = 512;
+        int result = (int) PLCLangExec.runCode(packageName, source, w, h);
+        assertEquals(result, 50);
+    }
+
+
+
+    @Test
+    void extractGreenFromPixel() throws Exception {
+        String source = """
+                int example(int w, int h) <:
+                image[w,h] im;
+                im[x,y] = [50, 100, 150];
+                ^im[0,0]:green;
+                :>
+                """;
+        int w = 512;
+        int h = 512;
+        int result = (int) PLCLangExec.runCode(packageName, source, w, h);
+        assertEquals(result, 100);
+    }
+
+
+    @Test
+    void extractBlueFromPixel() throws Exception {
+        String source = """
+                int example(int w, int h) <:
+                image[w,h] im;
+                im[x,y] = [50, 100, 150];
+                ^im[0,0]:blue;
+                :>
+                """;
+        int w = 512;
+        int h = 512;
+        int result = (int) PLCLangExec.runCode(packageName, source, w, h);
+        assertEquals(result, 150);
+    }
+
+
+    @Test
+    void setRedInPixel() throws Exception {
+        String source = """
+                int example() <:
+                pixel p = RED;
+                p:red = 0;
+                ^p:red;
+                :>
+                """;
+        int w = 512;
+        int h = 512;
+        int result = (int) PLCLangExec.runCode(packageName, source);
+        assertEquals(result, 0);
+    }
+
+
+    @Test
+    void setGreenInPixel() throws Exception {
+        String source = """
+                int example() <:
+                pixel p = GREEN;
+                p:green = 0;
+                ^p:green;
+                :>
+                """;
+        int w = 512;
+        int h = 512;
+        int result = (int) PLCLangExec.runCode(packageName, source);
+        assertEquals(result, 0);
+    }
+
+
+    @Test
+    void setBlueInPixel() throws Exception {
+        String source = """
+                int example() <:
+                pixel p = BLUE;
+                p:blue = 0;
+                ^p:blue;
+                :>
+                """;
+        int w = 512;
+        int h = 512;
+        int result = (int) PLCLangExec.runCode(packageName, source);
+        assertEquals(result, 0);
+    }
+
+
+    @Test
+    void extractRedFromImage() throws Exception {
+        String source = """
+                image example(int w, int h) <:
+                image[w,h] im;
+                im[x,y] = [50, 100, 150];
+                ^im:red;
+                :>
+                """;
+        int w = 512;
+        int h = 512;
+        BufferedImage result = (BufferedImage) PLCLangExec.runCode(packageName, source, w, h);
+        BufferedImage expected = ImageOps.makeImage(w, h);
+        expected = ImageOps.setAllPixels(expected, PixelOps.pack(50, 0, 0));
+        compareImages(expected, result);
+    }
+
+
+    // Although a function to do binary operations between images and pixels is given, type checker should not allow it.
+    @Test
+    void binaryImagePixelOp() throws Exception {
+        String source = """
+                image example(string url) <:
+                image im = url;
+                pixel p = [0, 0, 100];
+                im = im - p;
+                ^im;
+                :>
+                """;
+        String url = testURL;
+        TypeCheckException e = assertThrows(TypeCheckException.class, () -> PLCLangExec.runCode(packageName, source, url));
+        System.out.println(e);
+    }
+
+
+@Test
+    void extractGreenFromImage() throws Exception {
+        String source = """
+                image example(int w, int h) <:
+                image[w,h] im;
+                im[x,y] = [50, 100, 150];
+                ^im:green;
+                :>
+                """;
+        int w = 512;
+        int h = 512;
+        BufferedImage result = (BufferedImage) PLCLangExec.runCode(packageName, source, w, h);
+        BufferedImage expected = ImageOps.makeImage(w, h);
+        expected = ImageOps.setAllPixels(expected, PixelOps.pack(0, 100, 0));
+        compareImages(expected, result);
+    }
+
+
+    @Test
+    void extractBlueFromImage() throws Exception {
+        String source = """
+                image example(int w, int h) <:
+                image[w,h] im;
+                im[x,y] = [50, 100, 150];
+                ^im:blue;
+                :>
+                """;
+        int w = 512;
+        int h = 512;
+        BufferedImage result = (BufferedImage) PLCLangExec.runCode(packageName, source, w, h);
+        BufferedImage expected = ImageOps.makeImage(w, h);
+        expected = ImageOps.setAllPixels(expected, PixelOps.pack(0, 0, 150));
+        compareImages(expected, result);
+    }
+
+
+    @Test
+    void binaryPackedPixelScalarOp() throws Exception {
+        String source = """
+                pixel test()<:
+                           ^RED * 2;
+                         :>
+
+
+                """;
+        Object result = PLCLangExec.runCode(packageName, source);
+        int expected = ImageOps.binaryPackedPixelScalarOp(OP.TIMES, Color.RED.getRGB(), 2);
+        assertEquals(expected, (int) result);
+    }
+
+
 	}
 	
